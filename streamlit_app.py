@@ -2,30 +2,30 @@ import streamlit as st
 from openai import OpenAI
 from openai.types.chat import ChatCompletionChunk
 
-# Load the OpenAI API key from Streamlit secrets
+# Initialize OpenAI client from secrets (configured in Streamlit Cloud)
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-# App title and instructions
+# App UI
 st.title("💬 GPT-4.1 Nano Chatbot")
-st.write("Ask me anything. I'm powered by `gpt-4.1-nano-2025-04-14`!")
+st.write("Ask me anything. Powered by `gpt-4.1-nano-2025-04-14`!")
 
-# Initialize chat session
+# Initialize session state for chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
+# Display previous messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# User input
+# Handle user input
 if prompt := st.chat_input("Type your message here..."):
-    # Store and show user message
+    # Show user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generate assistant reply
+    # Generate response from OpenAI with streaming
     try:
         stream = client.chat.completions.create(
             model="gpt-4.1-nano-2025-04-14",
@@ -36,20 +36,20 @@ if prompt := st.chat_input("Type your message here..."):
             stream=True,
         )
 
+        # Display assistant response as it streams
         with st.chat_message("assistant"):
             response_container = st.empty()
             full_response = ""
 
             for chunk in stream:
-                if isinstance(chunk, ChatCompletionChunk):
-                    content = chunk.choices[0].delta.get("content", "")
-                    full_response += content
-                    response_container.markdown(full_response + "▌")
+                content = chunk.choices[0].delta.content or ""
+                full_response += content
+                response_container.markdown(full_response + "▌")
 
             response_container.markdown(full_response)
 
+        # Save assistant response to history
         st.session_state.messages.append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         st.error(f"⚠️ Error: {e}")
-    
