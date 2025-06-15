@@ -1,2 +1,4 @@
 streamlit
-openai
+openai>=1.0.0
+PyPDF2
+docx2txt
