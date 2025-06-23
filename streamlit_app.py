@@ -9,8 +9,8 @@ ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # -- STREAMLIT PAGE SETTINGS --
-st.set_page_config(page_title="🛠 Assistant Debug", layout="centered")
-st.title("🛠 Assistant Debug Chat update4")
+st.set_page_config(page_title="🛠 NFHS Football 2024 Rules Assistant", layout="centered")
+st.title("🛠 NFHS Football 2024 Rules Assistant (with Debug") v1.005
 st.caption(f"Connected to Assistant ID: `{ASSISTANT_ID}`")
 
 # -- SESSION STATE INIT --
