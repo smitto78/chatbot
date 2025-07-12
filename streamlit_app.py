@@ -11,6 +11,16 @@ st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="cent
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition (Stateless Mode)")
 st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
 
+# -- STYLING (OPTIONAL) --
+st.markdown("""
+<style>
+h3 {
+    margin-top: 1.2em;
+    color: #003366;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # -- GENERAL FUNCTION FOR HANDLING PROMPTS --
 def ask_assistant(prompt_text):
     thread = client.beta.threads.create()
@@ -74,12 +84,18 @@ def display_assistant_reply(assistant_reply):
     with st.expander("🧾 Full Assistant Response (Formatted)"):
         st.markdown(assistant_reply)
 
-# -- GENERAL QUESTION CHAT INPUT --
-prompt = st.chat_input("Ask your rules question (e.g., Can Team K recover their own punt?)")
+# ------------------------------
+# 💬 GENERAL RULE QUESTION
+# ------------------------------
+st.markdown("## 💬 Ask a Rules Question")
 
-if prompt:
-    with st.chat_message("user"):
-        st.markdown(prompt)
+with st.expander("Ask about a scenario or rule enforcement (e.g., roughing the passer, PSK, muffed punt):"):
+    prompt = st.text_area("Type your question here:", placeholder="Can Team K recover their own punt?")
+    submit = st.button("Ask")
+
+if prompt and submit:
+    st.markdown("**👤 You asked:**")
+    st.markdown(prompt)
     reply = ask_assistant(prompt)
     with st.chat_message("assistant"):
         display_assistant_reply(reply)
@@ -88,12 +104,13 @@ if prompt:
 # 🔍 RULE LOOKUP USING ASSISTANT
 # ------------------------------
 st.markdown("---")
-with st.expander("🔍 Look Up a Rule by ID"):
-    rule_id_input = st.text_input("Enter Rule ID (e.g., 10-4-3 or 7-5-2e):").strip()
+st.markdown("## 🔍 Look Up a Rule by ID")
+
+with st.expander("Look up a specific rule number (e.g., 10-4-3 or 7-5-2e):"):
+    rule_id_input = st.text_input("Enter Rule ID:")
     if rule_id_input:
         rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
-        with st.chat_message("user"):
-            st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
+        st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
         reply = ask_assistant(rule_prompt)
         with st.chat_message("assistant"):
             display_assistant_reply(reply)
