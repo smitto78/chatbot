@@ -97,9 +97,10 @@ general_submit = st.button("Ask", key="general_submit")
 
 if general_prompt and general_submit:
     st.session_state.active_expander = "general"
-    st.markdown("**👤 You asked:**")
-    st.markdown(general_prompt)
+    with st.expander("👤 You asked (click to collapse)", expanded=True):
+        st.markdown(general_prompt)
     general_reply = ask_assistant(general_prompt)
+    st.session_state["general_prompt"] = ""  # Clear input box
     with st.chat_message("assistant"):
         display_assistant_reply(general_reply)
 
@@ -114,7 +115,9 @@ rule_submit = st.button("Look Up", key="rule_submit")
 if rule_id_input and rule_submit:
     st.session_state.active_expander = "rule_lookup"
     rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
-    st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
+    with st.expander(f"🔎 Rule Lookup: {rule_id_input} (click to collapse)", expanded=True):
+        st.markdown(rule_prompt)
     rule_reply = ask_assistant(rule_prompt)
+    st.session_state["rule_input"] = ""  # Clear input box
     with st.chat_message("assistant"):
         display_assistant_reply(rule_reply)
