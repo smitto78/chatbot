@@ -45,35 +45,44 @@ def ask_assistant(prompt_text):
             return message.content[0].text.value
     return None
 
-# -- USER QUESTION INPUT --
+# -- FUNCTION TO DISPLAY REPLY IN UNIFIED FORMAT --
+def display_assistant_reply(assistant_reply):
+    if not assistant_reply:
+        st.warning("⚠️ No reply received from the assistant.")
+        return
+
+    # Always show simplified explanation first
+    if "### 🧠 Explanation" in assistant_reply:
+        simplified = assistant_reply.split("### 🧠 Explanation")[-1].split("###")[0]
+        st.markdown("### 🧠 Simplified Explanation (for players)")
+        st.markdown(simplified.strip())
+        st.markdown("---")
+
+    # Rule Content Expander
+    if "### 📜 Rule Content" in assistant_reply:
+        rule_section = assistant_reply.split("### 📜 Rule Content")[-1].split("###")[0]
+        with st.expander("📜 View Full Rule Content"):
+            st.markdown(rule_section.strip())
+
+    # Source Expander
+    if "### 📎 Source" in assistant_reply:
+        source_section = assistant_reply.split("### 📎 Source")[-1]
+        with st.expander("📎 View Source Details"):
+            st.markdown(source_section.strip())
+
+    # Show full reply at the bottom for transparency
+    with st.expander("🧾 Full Assistant Response (Formatted)"):
+        st.markdown(assistant_reply)
+
+# -- GENERAL QUESTION CHAT INPUT --
 prompt = st.chat_input("Ask your rules question (e.g., Can Team K recover their own punt?)")
 
 if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
-    assistant_reply = ask_assistant(prompt)
-
-    if assistant_reply:
-        with st.chat_message("assistant"):
-            st.markdown(assistant_reply)
-
-            if "### 🧠 Explanation" in assistant_reply:
-                simplified = assistant_reply.split("### 🧠 Explanation")[-1].split("###")[0]
-                st.markdown("---")
-                st.markdown("### 🧠 Simplified Explanation (for players)")
-                st.markdown(simplified.strip())
-
-            if "### 📜 Rule Content" in assistant_reply:
-                rule_section = assistant_reply.split("### 📜 Rule Content")[-1].split("###")[0]
-                with st.expander("📜 View Full Rule Content"):
-                    st.markdown(rule_section.strip())
-
-            if "### 📎 Source" in assistant_reply:
-                source_section = assistant_reply.split("### 📎 Source")[-1]
-                with st.expander("📎 View Source Details"):
-                    st.markdown(source_section.strip())
-    else:
-        st.warning("⚠️ No reply received from the assistant.")
+    reply = ask_assistant(prompt)
+    with st.chat_message("assistant"):
+        display_assistant_reply(reply)
 
 # ------------------------------
 # 🔍 RULE LOOKUP USING ASSISTANT
@@ -85,27 +94,6 @@ with st.expander("🔍 Look Up a Rule by ID"):
         rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
         with st.chat_message("user"):
             st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
-
-        assistant_reply = ask_assistant(rule_prompt)
-
-        if assistant_reply:
-            with st.chat_message("assistant"):
-                st.markdown(assistant_reply)
-
-                if "### 🧠 Explanation" in assistant_reply:
-                    simplified = assistant_reply.split("### 🧠 Explanation")[-1].split("###")[0]
-                    st.markdown("---")
-                    st.markdown("### 🧠 Simplified Explanation (for players)")
-                    st.markdown(simplified.strip())
-
-                if "### 📜 Rule Content" in assistant_reply:
-                    rule_section = assistant_reply.split("### 📜 Rule Content")[-1].split("###")[0]
-                    with st.expander("📜 View Full Rule Content"):
-                        st.markdown(rule_section.strip())
-
-                if "### 📎 Source" in assistant_reply:
-                    source_section = assistant_reply.split("### 📎 Source")[-1]
-                    with st.expander("📎 View Source Details"):
-                        st.markdown(source_section.strip())
-        else:
-            st.warning("⚠️ No reply received for that rule lookup.")
+        reply = ask_assistant(rule_prompt)
+        with st.chat_message("assistant"):
+            display_assistant_reply(reply)
