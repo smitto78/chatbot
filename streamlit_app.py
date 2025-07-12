@@ -4,79 +4,58 @@ import time
 
 # -- CONFIGURATION --
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
-
-# -- INIT OPENAI CLIENT --
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # -- STREAMLIT PAGE SETTINGS --
 st.set_page_config(page_title="🛠 NFHS Football 2025 Rules Assistant", layout="centered")
-st.title("🛠 NFHS Football 2025 Rules Assistant (with Debug) v1.005")
-st.caption(f"Connected to Assistant ID: `{ASSISTANT_ID}`")
+st.title("🛠 NFHS Football 2025 Rules Assistant (Stateless Mode)")
+st.caption("Each question is treated independently. No memory is retained between questions.")
 
-# -- SESSION STATE INIT --
-if "thread_id" not in st.session_state:
-    thread = client.beta.threads.create()
-    st.session_state.thread_id = thread.id
-    st.session_state.chat_history = []
-    st.session_state.run_count = 0
+# -- USER PROMPT --
+prompt = st.chat_input("Ask a rules question (e.g., PSK enforcement, illegal touching)...")
 
-# -- Display past messages --
-for msg in st.session_state.chat_history:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-# -- CHAT INPUT --
-if prompt := st.chat_input("Say something to your assistant..."):
-
+# -- PROCESS QUESTION --
+if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
-    st.session_state.run_count += 1
+    # 🔄 NEW THREAD PER QUESTION (stateless mode)
+    thread = client.beta.threads.create()
 
-    # ✅ ADD user message to thread
-    response = client.beta.threads.messages.create(
-        thread_id=st.session_state.thread_id,
+    # ➕ Add user message to the new thread
+    client.beta.threads.messages.create(
+        thread_id=thread.id,
         role="user",
         content=prompt
     )
-    st.code(f"[DEBUG] Added message ID: {response.id}")
 
-    # ✅ RUN assistant
+    # ▶️ Run assistant
     run = client.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
+        thread_id=thread.id,
         assistant_id=ASSISTANT_ID
     )
 
-    st.code(f"[DEBUG] Run ID: {run.id} (Run #{st.session_state.run_count})")
-
-    # ✅ WAIT for completion
-    with st.spinner("Waiting for assistant response..."):
+    # ⏳ Wait for run to complete
+    with st.spinner("Assistant is thinking..."):
         while True:
             run_status = client.beta.threads.runs.retrieve(
-                thread_id=st.session_state.thread_id,
+                thread_id=thread.id,
                 run_id=run.id
             )
             if run_status.status == "completed":
                 break
             elif run_status.status == "failed":
-                st.error("❌ Assistant failed.")
+                st.error("❌ Assistant run failed.")
                 break
             time.sleep(1)
 
-    # ✅ FETCH messages
-    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
+    # 📥 Fetch messages from the thread
+    messages = client.beta.threads.messages.list(thread_id=thread.id)
 
-    assistant_reply = None
+    # 💬 Display assistant reply
     for message in reversed(messages.data):
         if message.role == "assistant" and message.run_id == run.id:
             assistant_reply = message.content[0].text.value
-            st.code(f"[DEBUG] Assistant reply from message ID: {message.id}")
+            with st.chat_message("assistant"):
+                st.markdown(assistant_reply)
             break
-
-    if assistant_reply:
-        with st.chat_message("assistant"):
-            st.markdown(assistant_reply)
-        st.session_state.chat_history.append({"role": "assistant", "content": assistant_reply})
-    else:
-        st.warning("⚠️ Assistant did not return a valid reply.")
