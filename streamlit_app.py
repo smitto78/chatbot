@@ -78,7 +78,7 @@ def display_assistant_reply(assistant_reply):
 # ------------------------------
 st.markdown("## 💬 Ask a Rules Question")
 
-# Clear input logic
+# Clear logic
 if "clear_general" in st.session_state:
     del st.session_state["general_prompt"]
     del st.session_state["clear_general"]
@@ -97,7 +97,7 @@ if general_prompt and general_submit:
     general_reply = ask_assistant(general_prompt)
     st.session_state["last_general_reply"] = general_reply
     st.session_state["clear_general"] = True
-    st.experimental_rerun()
+    st.rerun()
 
 if "last_general_reply" in st.session_state:
     with st.chat_message("assistant"):
@@ -110,7 +110,7 @@ if "last_general_reply" in st.session_state:
 st.markdown("---")
 st.markdown("## 🔍 Look Up a Rule by ID")
 
-# Clear input logic
+# Clear logic
 if "clear_rule" in st.session_state:
     del st.session_state["rule_input"]
     del st.session_state["clear_rule"]
@@ -129,7 +129,7 @@ if rule_id_input and rule_submit:
     rule_reply = ask_assistant(rule_prompt)
     st.session_state["last_rule_reply"] = rule_reply
     st.session_state["clear_rule"] = True
-    st.experimental_rerun()
+    st.rerun()
 
 if "last_rule_reply" in st.session_state:
     with st.chat_message("assistant"):
