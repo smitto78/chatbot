@@ -6,12 +6,12 @@ import time
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-# -- STREAMLIT PAGE SETTINGS --
+# -- PAGE SETTINGS --
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="centered")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition (Stateless Mode)")
 st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
 
-# -- STYLING --
+# -- CSS --
 st.markdown("""
 <style>
 .greyed-out {
@@ -19,21 +19,24 @@ st.markdown("""
     font-style: italic;
 }
 button[disabled] {
-    pointer-events: none;
-    opacity: 0.5;
+    pointer-events: none !important;
+    opacity: 0.6 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# -- SESSION STATE DEFAULTS --
+# -- SESSION DEFAULTS --
 for key in [
-    "submitted_general", "last_general_question", "general_response", "processing_general",
-    "submitted_rule", "last_rule_id", "rule_response", "processing_rule"
+    "general_input", "rule_input",
+    "general_submitted", "rule_submitted",
+    "general_processing", "rule_processing",
+    "last_general_question", "last_general_response",
+    "last_rule_id", "last_rule_response"
 ]:
     if key not in st.session_state:
-        st.session_state[key] = False if "submitted" in key or "processing" in key else ""
+        st.session_state[key] = ""
 
-# -- FUNCTION: Call OpenAI Assistant --
+# -- ASSISTANT CALL --
 def ask_assistant(prompt_text):
     thread = client.beta.threads.create()
     client.beta.threads.messages.create(thread_id=thread.id, role="user", content=prompt_text)
@@ -58,90 +61,87 @@ def ask_assistant(prompt_text):
             return msg.content[0].text.value
     return None
 
-# -- FUNCTION: Display Reply --
-def display_assistant_reply(assistant_reply):
-    if not assistant_reply:
-        st.warning("⚠️ No reply received from the assistant.")
+# -- DISPLAY REPLY --
+def display_assistant_reply(reply):
+    if not reply:
+        st.warning("⚠️ No reply received.")
         return
 
-    if "### 🧠 Explanation" in assistant_reply:
-        simplified = assistant_reply.split("### 🧠 Explanation")[-1].split("###")[0]
+    if "### 🧠 Explanation" in reply:
+        simplified = reply.split("### 🧠 Explanation")[-1].split("###")[0]
         st.markdown("### 🧠 Simplified Explanation (for players)")
         st.markdown(simplified.strip())
         st.markdown("---")
 
-    if "### 📜 Rule Content" in assistant_reply:
-        rule_section = assistant_reply.split("### 📜 Rule Content")[-1].split("###")[0]
+    if "### 📜 Rule Content" in reply:
+        rule_section = reply.split("### 📜 Rule Content")[-1].split("###")[0]
         with st.expander("📜 View Full Rule Content", expanded=True):
             st.markdown(rule_section.strip())
 
-    if "### 📎 Source" in assistant_reply:
-        source_section = assistant_reply.split("### 📎 Source")[-1]
+    if "### 📎 Source" in reply:
+        source_section = reply.split("### 📎 Source")[-1]
         with st.expander("📎 View Source Details", expanded=True):
             st.markdown(source_section.strip())
 
     with st.expander("🧾 Full Assistant Response (Formatted)", expanded=True):
-        st.markdown(assistant_reply)
+        st.markdown(reply)
 
-# ------------------------------
+# ----------------------------
 # 💬 GENERAL QUESTION
-# ------------------------------
+# ----------------------------
 st.markdown("## 💬 Ask a Rules Question")
 
-if not st.session_state.submitted_general:
-    with st.form("general_form", clear_on_submit=True):
-        general_prompt = st.text_area("Type your scenario or question:", key="general_prompt_input")
-        general_submit = st.form_submit_button(
-            "Ask", disabled=st.session_state.processing_general
-        )
+if not st.session_state.general_submitted:
+    st.session_state.general_input = st.text_area("Scenario or question:", value=st.session_state.general_input, key="general_input_box")
+    ask_clicked = st.button("Ask", disabled=st.session_state.general_processing, key="ask_button")
 
-        if general_submit and general_prompt:
-            st.session_state.processing_general = True
-            st.session_state.last_general_question = general_prompt
-            st.session_state.submitted_general = True
-            st.session_state.general_response = ask_assistant(general_prompt)
-            st.session_state.processing_general = False
-else:
+    if ask_clicked and st.session_state.general_input.strip():
+        st.session_state.general_processing = True
+        st.session_state.last_general_question = st.session_state.general_input.strip()
+        st.session_state.last_general_response = ask_assistant(st.session_state.last_general_question)
+        st.session_state.general_submitted = True
+        st.session_state.general_processing = False
+
+if st.session_state.general_submitted:
     with st.expander("👤 You asked (click to collapse)", expanded=True):
         st.markdown(f"<div class='greyed-out'>{st.session_state.last_general_question}</div>", unsafe_allow_html=True)
 
     with st.chat_message("assistant"):
-        display_assistant_reply(st.session_state.general_response)
+        display_assistant_reply(st.session_state.last_general_response)
 
-    # Reset option
     if st.button("🔄 Ask Another Question"):
-        st.session_state.submitted_general = False
+        st.session_state.general_submitted = False
+        st.session_state.general_input = ""
         st.session_state.last_general_question = ""
-        st.session_state.general_response = ""
+        st.session_state.last_general_response = ""
 
-# ------------------------------
+# ----------------------------
 # 🔍 RULE LOOKUP
-# ------------------------------
+# ----------------------------
 st.markdown("---")
 st.markdown("## 🔍 Look Up a Rule by ID")
 
-if not st.session_state.submitted_rule:
-    with st.form("rule_lookup_form", clear_on_submit=True):
-        rule_id_input = st.text_input("Enter Rule ID (e.g., 10-4-3 or 7-5-2e):", key="rule_id_input")
-        rule_submit = st.form_submit_button(
-            "Look Up", disabled=st.session_state.processing_rule
-        )
+if not st.session_state.rule_submitted:
+    st.session_state.rule_input = st.text_input("Enter Rule ID:", value=st.session_state.rule_input, key="rule_input_box")
+    lookup_clicked = st.button("Look Up", disabled=st.session_state.rule_processing, key="lookup_button")
 
-        if rule_submit and rule_id_input:
-            st.session_state.processing_rule = True
-            st.session_state.last_rule_id = rule_id_input
-            rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
-            st.session_state.rule_response = ask_assistant(rule_prompt)
-            st.session_state.submitted_rule = True
-            st.session_state.processing_rule = False
-else:
-    with st.expander(f"🔎 Rule Lookup: {st.session_state.last_rule_id} (click to collapse)", expanded=True):
+    if lookup_clicked and st.session_state.rule_input.strip():
+        st.session_state.rule_processing = True
+        st.session_state.last_rule_id = st.session_state.rule_input.strip()
+        prompt = f"Explain NFHS football rule {st.session_state.last_rule_id} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
+        st.session_state.last_rule_response = ask_assistant(prompt)
+        st.session_state.rule_submitted = True
+        st.session_state.rule_processing = False
+
+if st.session_state.rule_submitted:
+    with st.expander(f"🔎 Rule Lookup: {st.session_state.last_rule_id}", expanded=True):
         st.markdown(f"<div class='greyed-out'>{st.session_state.last_rule_id}</div>", unsafe_allow_html=True)
 
     with st.chat_message("assistant"):
-        display_assistant_reply(st.session_state.rule_response)
+        display_assistant_reply(st.session_state.last_rule_response)
 
     if st.button("🔄 Look Up Another Rule"):
-        st.session_state.submitted_rule = False
+        st.session_state.rule_submitted = False
+        st.session_state.rule_input = ""
         st.session_state.last_rule_id = ""
-        st.session_state.rule_response = ""
+        st.session_state.last_rule_response = ""
