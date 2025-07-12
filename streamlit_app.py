@@ -11,6 +11,10 @@ st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="cent
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition (Stateless Mode)")
 st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
 
+# -- SESSION STATE INIT --
+if "active_expander" not in st.session_state:
+    st.session_state.active_expander = None
+
 # -- STYLING (OPTIONAL) --
 st.markdown("""
 <style>
@@ -20,10 +24,6 @@ h3 {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# -- SESSION STATE INIT --
-if "active_expander" not in st.session_state:
-    st.session_state.active_expander = None
 
 # -- GENERAL FUNCTION FOR HANDLING PROMPTS --
 def ask_assistant(prompt_text):
@@ -59,7 +59,7 @@ def ask_assistant(prompt_text):
             return message.content[0].text.value
     return None
 
-# -- FUNCTION TO DISPLAY REPLY IN UNIFIED FORMAT --
+# -- FUNCTION TO DISPLAY REPLY IN COLLAPSIBLE FORMAT --
 def display_assistant_reply(assistant_reply):
     if not assistant_reply:
         st.warning("⚠️ No reply received from the assistant.")
@@ -75,27 +75,25 @@ def display_assistant_reply(assistant_reply):
     # Rule Content Expander
     if "### 📜 Rule Content" in assistant_reply:
         rule_section = assistant_reply.split("### 📜 Rule Content")[-1].split("###")[0]
-        with st.expander("📜 View Full Rule Content"):
+        with st.expander("📜 View Full Rule Content", expanded=True):
             st.markdown(rule_section.strip())
 
     # Source Expander
     if "### 📎 Source" in assistant_reply:
         source_section = assistant_reply.split("### 📎 Source")[-1]
-        with st.expander("📎 View Source Details"):
+        with st.expander("📎 View Source Details", expanded=True):
             st.markdown(source_section.strip())
 
-    # Show full reply at the bottom for transparency
-    with st.expander("🧾 Full Assistant Response (Formatted)"):
+    # Full Response
+    with st.expander("🧾 Full Assistant Response (Formatted)", expanded=False):
         st.markdown(assistant_reply)
 
 # ------------------------------
-# 💬 GENERAL RULE QUESTION
+# 💬 GENERAL QUESTION INPUT
 # ------------------------------
 st.markdown("## 💬 Ask a Rules Question")
-
-with st.expander("Ask about a scenario or rule enforcement (e.g., roughing the passer, PSK, muffed punt):", expanded=st.session_state.active_expander == "general"):
-    general_prompt = st.text_area("Type your question here:", placeholder="Can Team K recover their own punt?")
-    general_submit = st.button("Ask", key="general_ask")
+general_prompt = st.text_area("Type your scenario or question:", placeholder="e.g., Can Team K recover their own punt?", key="general_prompt")
+general_submit = st.button("Ask", key="general_submit")
 
 if general_prompt and general_submit:
     st.session_state.active_expander = "general"
@@ -106,14 +104,12 @@ if general_prompt and general_submit:
         display_assistant_reply(general_reply)
 
 # ------------------------------
-# 🔍 RULE LOOKUP USING ASSISTANT
+# 🔍 RULE ID LOOKUP INPUT
 # ------------------------------
 st.markdown("---")
 st.markdown("## 🔍 Look Up a Rule by ID")
-
-with st.expander("Look up a specific rule number (e.g., 10-4-3 or 7-5-2e):", expanded=st.session_state.active_expander == "rule_lookup"):
-    rule_id_input = st.text_input("Enter Rule ID:")
-    rule_submit = st.button("Look Up", key="rule_lookup_button")
+rule_id_input = st.text_input("Enter Rule ID (e.g., 10-4-3 or 7-5-2e):", key="rule_input")
+rule_submit = st.button("Look Up", key="rule_submit")
 
 if rule_id_input and rule_submit:
     st.session_state.active_expander = "rule_lookup"
