@@ -27,8 +27,8 @@ button[disabled] {
 
 # -- SESSION DEFAULTS --
 defaults = {
-    "general_input": "",
-    "rule_input": "",
+    "general_input_box": "",
+    "rule_input_box": "",
     "general_submitted": False,
     "rule_submitted": False,
     "general_processing": False,
@@ -98,14 +98,14 @@ def display_assistant_reply(reply):
 st.markdown("## 💬 Ask a Rules Question")
 
 if not st.session_state.general_submitted:
-    st.session_state.general_input = st.text_area("Scenario or question:", value=st.session_state.general_input, key="general_input_box")
+    st.text_area("Scenario or question:", key="general_input_box")
     ask_clicked = st.button("Ask", disabled=st.session_state.general_processing, key="ask_button")
 
-    if ask_clicked and st.session_state.general_input.strip():
+    if ask_clicked and st.session_state.general_input_box.strip():
         st.session_state.general_processing = True
-        st.session_state.last_general_question = st.session_state.general_input.strip()
+        st.session_state.last_general_question = st.session_state.general_input_box.strip()
         st.session_state.last_general_response = ask_assistant(st.session_state.last_general_question)
-        st.session_state.general_input = ""  # clear input after asking
+        st.session_state.general_input_box = ""  # Clear the input field
         st.session_state.general_submitted = True
         st.session_state.general_processing = False
 
@@ -118,7 +118,7 @@ if st.session_state.general_submitted:
 
     if st.button("🔄 Ask Another Question"):
         st.session_state.general_submitted = False
-        st.session_state.general_input = ""
+        st.session_state.general_input_box = ""
         st.session_state.last_general_question = ""
         st.session_state.last_general_response = ""
 
@@ -129,15 +129,15 @@ st.markdown("---")
 st.markdown("## 🔍 Look Up a Rule by ID")
 
 if not st.session_state.rule_submitted:
-    st.session_state.rule_input = st.text_input("Enter Rule ID:", value=st.session_state.rule_input, key="rule_input_box")
+    st.text_input("Enter Rule ID:", key="rule_input_box")
     lookup_clicked = st.button("Look Up", disabled=st.session_state.rule_processing, key="lookup_button")
 
-    if lookup_clicked and st.session_state.rule_input.strip():
+    if lookup_clicked and st.session_state.rule_input_box.strip():
         st.session_state.rule_processing = True
-        st.session_state.last_rule_id = st.session_state.rule_input.strip()
+        st.session_state.last_rule_id = st.session_state.rule_input_box.strip()
         prompt = f"Explain NFHS football rule {st.session_state.last_rule_id} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
         st.session_state.last_rule_response = ask_assistant(prompt)
-        st.session_state.rule_input = ""  # clear input after lookup
+        st.session_state.rule_input_box = ""  # Clear the input field
         st.session_state.rule_submitted = True
         st.session_state.rule_processing = False
 
@@ -150,6 +150,6 @@ if st.session_state.rule_submitted:
 
     if st.button("🔄 Look Up Another Rule"):
         st.session_state.rule_submitted = False
-        st.session_state.rule_input = ""
+        st.session_state.rule_input_box = ""
         st.session_state.last_rule_id = ""
         st.session_state.last_rule_response = ""
