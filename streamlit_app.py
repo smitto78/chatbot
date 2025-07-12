@@ -105,6 +105,7 @@ if not st.session_state.general_submitted:
         st.session_state.general_processing = True
         st.session_state.last_general_question = st.session_state.general_input.strip()
         st.session_state.last_general_response = ask_assistant(st.session_state.last_general_question)
+        st.session_state.general_input = ""  # clear input after asking
         st.session_state.general_submitted = True
         st.session_state.general_processing = False
 
@@ -136,6 +137,7 @@ if not st.session_state.rule_submitted:
         st.session_state.last_rule_id = st.session_state.rule_input.strip()
         prompt = f"Explain NFHS football rule {st.session_state.last_rule_id} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
         st.session_state.last_rule_response = ask_assistant(prompt)
+        st.session_state.rule_input = ""  # clear input after lookup
         st.session_state.rule_submitted = True
         st.session_state.rule_processing = False
 
