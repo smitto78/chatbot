@@ -6,150 +6,115 @@ import time
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-# -- PAGE SETTINGS --
+# -- STREAMLIT PAGE SETTINGS --
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="centered")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition (Stateless Mode)")
 st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
 
-# -- CSS --
+# -- SESSION STATE INIT --
+if "active_expander" not in st.session_state:
+    st.session_state.active_expander = None
+
+# -- STYLING (OPTIONAL) --
 st.markdown("""
 <style>
-.greyed-out {
-    color: gray;
-    font-style: italic;
-}
-button[disabled] {
-    pointer-events: none !important;
-    opacity: 0.6 !important;
+h3 {
+    margin-top: 1.2em;
+    color: #003366;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# -- SESSION DEFAULTS --
-defaults = {
-    "general_input_box": "",
-    "rule_input_box": "",
-    "general_submitted": False,
-    "rule_submitted": False,
-    "general_processing": False,
-    "rule_processing": False,
-    "last_general_question": "",
-    "last_general_response": "",
-    "last_rule_id": "",
-    "last_rule_response": ""
-}
-for key, value in defaults.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
-# -- ASSISTANT CALL --
+# -- GENERAL FUNCTION FOR HANDLING PROMPTS --
 def ask_assistant(prompt_text):
     thread = client.beta.threads.create()
-    client.beta.threads.messages.create(thread_id=thread.id, role="user", content=prompt_text)
-    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=ASSISTANT_ID)
+
+    client.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=prompt_text
+    )
+
+    run = client.beta.threads.runs.create(
+        thread_id=thread.id,
+        assistant_id=ASSISTANT_ID
+    )
 
     with st.spinner("Assistant is reviewing the rules..."):
-        for _ in range(30):
-            run_status = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+        while True:
+            run_status = client.beta.threads.runs.retrieve(
+                thread_id=thread.id,
+                run_id=run.id
+            )
             if run_status.status == "completed":
                 break
             elif run_status.status == "failed":
                 st.error("❌ Assistant run failed.")
                 return None
             time.sleep(1)
-        else:
-            st.error("⚠️ Assistant timed out.")
-            return None
 
     messages = client.beta.threads.messages.list(thread_id=thread.id)
-    for msg in reversed(messages.data):
-        if msg.role == "assistant" and msg.run_id == run.id:
-            return msg.content[0].text.value
+    for message in reversed(messages.data):
+        if message.role == "assistant" and message.run_id == run.id:
+            return message.content[0].text.value
     return None
 
-# -- DISPLAY REPLY --
-def display_assistant_reply(reply):
-    if not reply:
-        st.warning("⚠️ No reply received.")
+# -- FUNCTION TO DISPLAY REPLY IN COLLAPSIBLE FORMAT --
+def display_assistant_reply(assistant_reply):
+    if not assistant_reply:
+        st.warning("⚠️ No reply received from the assistant.")
         return
 
-    if "### 🧠 Explanation" in reply:
-        simplified = reply.split("### 🧠 Explanation")[-1].split("###")[0]
+    # Always show simplified explanation first
+    if "### 🧠 Explanation" in assistant_reply:
+        simplified = assistant_reply.split("### 🧠 Explanation")[-1].split("###")[0]
         st.markdown("### 🧠 Simplified Explanation (for players)")
         st.markdown(simplified.strip())
         st.markdown("---")
 
-    if "### 📜 Rule Content" in reply:
-        rule_section = reply.split("### 📜 Rule Content")[-1].split("###")[0]
+    # Rule Content Expander
+    if "### 📜 Rule Content" in assistant_reply:
+        rule_section = assistant_reply.split("### 📜 Rule Content")[-1].split("###")[0]
         with st.expander("📜 View Full Rule Content", expanded=True):
             st.markdown(rule_section.strip())
 
-    if "### 📎 Source" in reply:
-        source_section = reply.split("### 📎 Source")[-1]
+    # Source Expander
+    if "### 📎 Source" in assistant_reply:
+        source_section = assistant_reply.split("### 📎 Source")[-1]
         with st.expander("📎 View Source Details", expanded=True):
             st.markdown(source_section.strip())
 
-    with st.expander("🧾 Full Assistant Response (Formatted)", expanded=True):
-        st.markdown(reply)
+    # Full Response
+    with st.expander("🧾 Full Assistant Response (Formatted)", expanded=False):
+        st.markdown(assistant_reply)
 
-# ----------------------------
-# 💬 GENERAL QUESTION
-# ----------------------------
+# ------------------------------
+# 💬 GENERAL QUESTION INPUT
+# ------------------------------
 st.markdown("## 💬 Ask a Rules Question")
+general_prompt = st.text_area("Type your scenario or question:", placeholder="e.g., Can Team K recover their own punt?", key="general_prompt")
+general_submit = st.button("Ask", key="general_submit")
 
-if not st.session_state.general_submitted:
-    st.text_area("Scenario or question:", key="general_input_box")
-    ask_clicked = st.button("Ask", disabled=st.session_state.general_processing, key="ask_button")
-
-    if ask_clicked and st.session_state.general_input_box.strip():
-        st.session_state.general_processing = True
-        st.session_state.last_general_question = st.session_state.general_input_box.strip()
-        st.session_state.last_general_response = ask_assistant(st.session_state.last_general_question)
-        st.session_state.general_input_box = ""  # Clear the input field
-        st.session_state.general_submitted = True
-        st.session_state.general_processing = False
-
-if st.session_state.general_submitted:
-    with st.expander("👤 You asked (click to collapse)", expanded=True):
-        st.markdown(f"<div class='greyed-out'>{st.session_state.last_general_question}</div>", unsafe_allow_html=True)
-
+if general_prompt and general_submit:
+    st.session_state.active_expander = "general"
+    st.markdown("**👤 You asked:**")
+    st.markdown(general_prompt)
+    general_reply = ask_assistant(general_prompt)
     with st.chat_message("assistant"):
-        display_assistant_reply(st.session_state.last_general_response)
+        display_assistant_reply(general_reply)
 
-    if st.button("🔄 Ask Another Question"):
-        st.session_state.general_submitted = False
-        st.session_state.general_input_box = ""
-        st.session_state.last_general_question = ""
-        st.session_state.last_general_response = ""
-
-# ----------------------------
-# 🔍 RULE LOOKUP
-# ----------------------------
+# ------------------------------
+# 🔍 RULE ID LOOKUP INPUT
+# ------------------------------
 st.markdown("---")
 st.markdown("## 🔍 Look Up a Rule by ID")
+rule_id_input = st.text_input("Enter Rule ID (e.g., 10-4-3 or 7-5-2e):", key="rule_input")
+rule_submit = st.button("Look Up", key="rule_submit")
 
-if not st.session_state.rule_submitted:
-    st.text_input("Enter Rule ID:", key="rule_input_box")
-    lookup_clicked = st.button("Look Up", disabled=st.session_state.rule_processing, key="lookup_button")
-
-    if lookup_clicked and st.session_state.rule_input_box.strip():
-        st.session_state.rule_processing = True
-        st.session_state.last_rule_id = st.session_state.rule_input_box.strip()
-        prompt = f"Explain NFHS football rule {st.session_state.last_rule_id} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
-        st.session_state.last_rule_response = ask_assistant(prompt)
-        st.session_state.rule_input_box = ""  # Clear the input field
-        st.session_state.rule_submitted = True
-        st.session_state.rule_processing = False
-
-if st.session_state.rule_submitted:
-    with st.expander(f"🔎 Rule Lookup: {st.session_state.last_rule_id}", expanded=True):
-        st.markdown(f"<div class='greyed-out'>{st.session_state.last_rule_id}</div>", unsafe_allow_html=True)
-
+if rule_id_input and rule_submit:
+    st.session_state.active_expander = "rule_lookup"
+    rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
+    st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
+    rule_reply = ask_assistant(rule_prompt)
     with st.chat_message("assistant"):
-        display_assistant_reply(st.session_state.last_rule_response)
-
-    if st.button("🔄 Look Up Another Rule"):
-        st.session_state.rule_submitted = False
-        st.session_state.rule_input_box = ""
-        st.session_state.last_rule_id = ""
-        st.session_state.last_rule_response = ""
+        display_assistant_reply(rule_reply)
