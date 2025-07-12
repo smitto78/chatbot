@@ -21,6 +21,10 @@ h3 {
 </style>
 """, unsafe_allow_html=True)
 
+# -- SESSION STATE INIT --
+if "active_expander" not in st.session_state:
+    st.session_state.active_expander = None
+
 # -- GENERAL FUNCTION FOR HANDLING PROMPTS --
 def ask_assistant(prompt_text):
     thread = client.beta.threads.create()
@@ -89,16 +93,17 @@ def display_assistant_reply(assistant_reply):
 # ------------------------------
 st.markdown("## 💬 Ask a Rules Question")
 
-with st.expander("Ask about a scenario or rule enforcement (e.g., roughing the passer, PSK, muffed punt):"):
-    prompt = st.text_area("Type your question here:", placeholder="Can Team K recover their own punt?")
-    submit = st.button("Ask")
+with st.expander("Ask about a scenario or rule enforcement (e.g., roughing the passer, PSK, muffed punt):", expanded=st.session_state.active_expander == "general"):
+    general_prompt = st.text_area("Type your question here:", placeholder="Can Team K recover their own punt?")
+    general_submit = st.button("Ask", key="general_ask")
 
-if prompt and submit:
+if general_prompt and general_submit:
+    st.session_state.active_expander = "general"
     st.markdown("**👤 You asked:**")
-    st.markdown(prompt)
-    reply = ask_assistant(prompt)
+    st.markdown(general_prompt)
+    general_reply = ask_assistant(general_prompt)
     with st.chat_message("assistant"):
-        display_assistant_reply(reply)
+        display_assistant_reply(general_reply)
 
 # ------------------------------
 # 🔍 RULE LOOKUP USING ASSISTANT
@@ -106,11 +111,14 @@ if prompt and submit:
 st.markdown("---")
 st.markdown("## 🔍 Look Up a Rule by ID")
 
-with st.expander("Look up a specific rule number (e.g., 10-4-3 or 7-5-2e):"):
+with st.expander("Look up a specific rule number (e.g., 10-4-3 or 7-5-2e):", expanded=st.session_state.active_expander == "rule_lookup"):
     rule_id_input = st.text_input("Enter Rule ID:")
-    if rule_id_input:
-        rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
-        st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
-        reply = ask_assistant(rule_prompt)
-        with st.chat_message("assistant"):
-            display_assistant_reply(reply)
+    rule_submit = st.button("Look Up", key="rule_lookup_button")
+
+if rule_id_input and rule_submit:
+    st.session_state.active_expander = "rule_lookup"
+    rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
+    st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
+    rule_reply = ask_assistant(rule_prompt)
+    with st.chat_message("assistant"):
+        display_assistant_reply(rule_reply)
