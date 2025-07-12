@@ -8,11 +8,8 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # -- STREAMLIT PAGE SETTINGS --
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="centered")
-st.title("🏈 NFHS Football Rules Assistant – 2025 Edition (Stateless Mode)")
-st.caption("Built for players, coaches, and officials – Ask a question and get a rule-supported answer.")
-
-# -- UI TOGGLE FOR SIMPLIFICATION --
-show_simple = st.toggle("👶 Simplified Explanation (for players)", value=False)
+st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
+st.caption("Ask a question and receive an official, rule-supported answer. Designed for players, coaches, and officials.")
 
 # -- USER PROMPT INPUT --
 prompt = st.chat_input("Ask your rules question (e.g., Can Team K recover their own punt?)")
@@ -22,7 +19,7 @@ if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 🔄 Create a new thread per question to ensure stateless behavior
+    # 🔄 Create new thread per question (stateless mode)
     thread = client.beta.threads.create()
 
     # ➕ Add user message to thread
@@ -38,7 +35,7 @@ if prompt:
         assistant_id=ASSISTANT_ID
     )
 
-    # ⏳ Wait until the assistant finishes responding
+    # ⏳ Wait for completion
     with st.spinner("Assistant is reviewing the rules..."):
         while True:
             run_status = client.beta.threads.runs.retrieve(
@@ -52,7 +49,7 @@ if prompt:
                 break
             time.sleep(1)
 
-    # 📥 Fetch assistant's message from the completed thread
+    # 📥 Retrieve messages
     messages = client.beta.threads.messages.list(thread_id=thread.id)
     assistant_reply = None
 
@@ -61,15 +58,38 @@ if prompt:
             assistant_reply = message.content[0].text.value
             break
 
-    # 💬 Display the assistant's structured response
+    # 💬 Display assistant reply and simplified explanation
     if assistant_reply:
         with st.chat_message("assistant"):
-            if show_simple and "### 🧠 Explanation" in assistant_reply:
-                # Extract and show simplified explanation
+            # Display full structured reply
+            st.markdown(assistant_reply)
+
+            # Simplified explanation from Explanation section
+            if "### 🧠 Explanation" in assistant_reply:
                 simplified = assistant_reply.split("### 🧠 Explanation")[-1].split("###")[0]
-                st.markdown("### 🧠 Simplified Explanation")
+                st.markdown("---")
+                st.markdown("### 🧠 Simplified Explanation (for players)")
                 st.markdown(simplified.strip())
-            else:
-                st.markdown(assistant_reply)
+
+            # Rule content expander
+            if "### 📜 Rule Content" in assistant_reply:
+                rule_section = assistant_reply.split("### 📜 Rule Content")[-1].split("###")[0]
+                with st.expander("📜 View Full Rule Content"):
+                    st.markdown(rule_section.strip())
+
+            # Source section expander
+            if "### 📎 Source" in assistant_reply:
+                source_section = assistant_reply.split("### 📎 Source")[-1]
+                with st.expander("📎 View Source Details"):
+                    st.markdown(source_section.strip())
     else:
         st.warning("⚠️ No reply received from the assistant.")
+
+# ------------------------------
+# 🔍 Rule Reference Lookup Tool
+# ------------------------------
+st.markdown("---")
+with st.expander("🔍 Look Up a Rule by ID (for officials or trainers)"):
+    rule_id_input = st.text_input("Enter Rule ID (e.g., 10-4-3 or 7-5-2e):")
+    if rule_id_input:
+        st.info("⚠️ Rule lookup is not yet connected to your rules database. This feature is a placeholder for future integration.")
