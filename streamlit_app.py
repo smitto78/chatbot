@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import time
+import re
 
 # -- CONFIGURATION --
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
@@ -10,10 +11,6 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="centered")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition (Stateless Mode)")
 st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
-
-# -- SESSION STATE INIT --
-if "active_expander" not in st.session_state:
-    st.session_state.active_expander = None
 
 # -- STYLING (OPTIONAL) --
 st.markdown("""
@@ -41,7 +38,9 @@ def ask_assistant(prompt_text):
     )
 
     with st.spinner("Assistant is reviewing the rules..."):
-        while True:
+        max_retries = 30
+        retry_count = 0
+        while retry_count < max_retries:
             run_status = client.beta.threads.runs.retrieve(
                 thread_id=thread.id,
                 run_id=run.id
@@ -51,7 +50,11 @@ def ask_assistant(prompt_text):
             elif run_status.status == "failed":
                 st.error("❌ Assistant run failed.")
                 return None
+            retry_count += 1
             time.sleep(1)
+        else:
+            st.error("⚠️ Assistant timed out.")
+            return None
 
     messages = client.beta.threads.messages.list(thread_id=thread.id)
     for message in reversed(messages.data):
@@ -92,13 +95,18 @@ def display_assistant_reply(assistant_reply):
 # 💬 GENERAL QUESTION INPUT
 # ------------------------------
 st.markdown("## 💬 Ask a Rules Question")
-general_prompt = st.text_area("Type your scenario or question:", placeholder="e.g., Can Team K recover their own punt?", key="general_prompt")
-general_submit = st.button("Ask", key="general_submit")
 
-if general_prompt and general_submit:
-    st.session_state.active_expander = "general"
-    st.markdown("**👤 You asked:**")
-    st.markdown(general_prompt)
+with st.form("general_form", clear_on_submit=True):
+    general_prompt = st.text_area(
+        "Type your scenario or question:",
+        placeholder="e.g., Can Team K recover their own punt?",
+        key="general_prompt_input"
+    )
+    general_submit = st.form_submit_button("Ask")
+
+if general_submit and general_prompt:
+    with st.expander("👤 You asked (click to expand)", expanded=False):
+        st.markdown(general_prompt)
     general_reply = ask_assistant(general_prompt)
     with st.chat_message("assistant"):
         display_assistant_reply(general_reply)
@@ -108,13 +116,18 @@ if general_prompt and general_submit:
 # ------------------------------
 st.markdown("---")
 st.markdown("## 🔍 Look Up a Rule by ID")
-rule_id_input = st.text_input("Enter Rule ID (e.g., 10-4-3 or 7-5-2e):", key="rule_input")
-rule_submit = st.button("Look Up", key="rule_submit")
 
-if rule_id_input and rule_submit:
-    st.session_state.active_expander = "rule_lookup"
+with st.form("rule_lookup_form", clear_on_submit=True):
+    rule_id_input = st.text_input(
+        "Enter Rule ID (e.g., 10-4-3 or 7-5-2e):",
+        key="rule_id_input"
+    )
+    rule_submit = st.form_submit_button("Look Up")
+
+if rule_submit and rule_id_input:
     rule_prompt = f"Explain NFHS football rule {rule_id_input} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
-    st.markdown(f"🔎 Rule Lookup: **{rule_id_input}**")
+    with st.expander(f"🔎 Rule Lookup: {rule_id_input} (click to expand)", expanded=False):
+        st.markdown(rule_prompt)
     rule_reply = ask_assistant(rule_prompt)
     with st.chat_message("assistant"):
         display_assistant_reply(rule_reply)
