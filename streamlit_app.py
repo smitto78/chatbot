@@ -26,15 +26,21 @@ button[disabled] {
 """, unsafe_allow_html=True)
 
 # -- SESSION DEFAULTS --
-for key in [
-    "general_input", "rule_input",
-    "general_submitted", "rule_submitted",
-    "general_processing", "rule_processing",
-    "last_general_question", "last_general_response",
-    "last_rule_id", "last_rule_response"
-]:
+defaults = {
+    "general_input": "",
+    "rule_input": "",
+    "general_submitted": False,
+    "rule_submitted": False,
+    "general_processing": False,
+    "rule_processing": False,
+    "last_general_question": "",
+    "last_general_response": "",
+    "last_rule_id": "",
+    "last_rule_response": ""
+}
+for key, value in defaults.items():
     if key not in st.session_state:
-        st.session_state[key] = ""
+        st.session_state[key] = value
 
 # -- ASSISTANT CALL --
 def ask_assistant(prompt_text):
