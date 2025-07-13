@@ -9,7 +9,7 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # -- STREAMLIT PAGE SETTINGS --
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="centered")
-st.title("🏈 NFHS Football Rules Assistant – 2025 Edition (Stateless Mode)")
+st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
 
 # -- SESSION STATE INIT --
