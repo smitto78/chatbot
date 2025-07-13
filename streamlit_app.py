@@ -84,7 +84,7 @@ def display_assistant_reply(assistant_reply):
         with st.expander("📎 View Source Details", expanded=True):
             st.markdown(source_section.strip())
 
-    with st.expander("🧾 Full Assistant Response (Formatted)", expanded=False):
+    with st.expander("🧾 Full Assistant Response (Formatted) - Click here to expand.", expanded=False):
         st.markdown(assistant_reply)
 
 # ------------------------------
@@ -109,7 +109,7 @@ if general_submit and general_prompt:
     st.rerun()
 
 if st.session_state.last_general_prompt and st.session_state.clear_general is False:
-    with st.expander("👤 Your Question", expanded=False):
+    with st.expander("👤 Your Question - Click here to expand.", expanded=False):
         st.markdown(st.session_state.last_general_prompt)
     st.session_state.last_general_reply = ask_assistant(st.session_state.last_general_prompt)
     with st.chat_message("assistant"):
