@@ -139,7 +139,7 @@ if rule_submit and rule_input:
     st.rerun()
 
 if st.session_state.last_rule_id and st.session_state.clear_rule is False:
-    with st.expander(f"🔎 Rule Lookup: {st.session_state.last_rule_id}", expanded=False):
+    with st.expander(f"🔎 Rule Lookup - Click here to expand.: {st.session_state.last_rule_id}", expanded=False):
         st.markdown(f"Requested explanation for **{st.session_state.last_rule_id}**")
     rule_prompt = f"Explain NFHS football rule {st.session_state.last_rule_id} from the 2025 rulebook. Include the rule text, its enforcement, and a simplified explanation suitable for players. Add case book examples if available."
     rule_reply = ask_assistant(rule_prompt)
