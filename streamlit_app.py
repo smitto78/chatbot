@@ -78,18 +78,18 @@ def render_rule_section():
     if st.session_state.last_rule_id:
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
-            f"You are an expert in NFHS football rules. The user is asking about rule {rule_id} from the 2025 rulebook.\n\n"
-            f"Step 1: You must inspect the `metadata.id` field of the retrieved document.\n"
-            f"Step 2: Only proceed if `metadata.id` matches exactly \"{rule_id}\".\n"
-            f"If no such match is found, respond only with:\n"
-            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n\n"
-            f"Step 3: If a match is found, respond using this format:\n\n"
-            f"NFHS Rule {rule_id} defines the following:\n\n"
-            f"**Rule Title:** [Insert value from metadata.rule_title]\n\n"
-            f"**Rule Text:**\n"
-            f"[Insert value from text field]\n\n"
-            f"**Additional Notes or Field Insights:**\n"
-            f"- Add helpful clarifications, game scenarios, or common interpretations here in bullet format."
+            f"You are an NFHS football rules expert. A user has asked about rule {rule_id} from the 2025 rulebook.\n\n"
+            f"Step 1: Check the retrieved document. Only respond if `metadata.id` is exactly equal to \"{rule_id}\".\n"
+            f"Step 2: If the ID matches, format your reply like this:\n\n"
+            f"NFHS Rule {rule_id}:\n\n"
+            f"**Rule Title:** [Insert metadata.rule_title if available]\n"
+            f"**Rule Text:** [Insert the `text` field as-is]\n\n"
+            f"**Additional Notes:**\n"
+            f"- Include helpful clarifications or common field rulings as bullet points (if applicable)\n\n"
+            f"Step 3: If the ID does not match exactly, say:\n"
+            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n"
+            f"Do not guess. Do not summarize nearby rules. Do not infer based on similarity.\n\n"
+            f"Also: Always include this debug line at the top: `Retrieved metadata.id: [actual ID]`"
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
