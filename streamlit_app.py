@@ -87,7 +87,8 @@ def render_rule_section():
             f"NFHS Rule {rule_id} defines the term or topic it addresses. Here is the rule:\n\n"
             f"Rule {rule_id}: [insert exact rule text here]\n\n"
             f"Further key points often included in this rule:\n"
-            f"- [Insert helpful clarifications or common rulings as bullet points]"
+            f"- [Insert helpful clarifications or common rulings as bullet points]\n\n"
+            f"Format your entire answer using clear markdown formatting for readability."
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
