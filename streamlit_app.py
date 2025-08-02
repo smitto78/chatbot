@@ -79,17 +79,17 @@ def render_rule_section():
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
             f"You are an expert in NFHS football rules. The user is asking about rule {rule_id} from the 2025 rulebook.\n\n"
-            f"Step 1: You must first inspect the `metadata.id` of any retrieved document.\n"
-            f"Step 2: Only proceed if the value of `metadata.id` is exactly \"{rule_id}\". "
-            f"If no such match is found, respond with:\n"
+            f"Step 1: You must inspect the `metadata.id` field of the retrieved document.\n"
+            f"Step 2: Only proceed if `metadata.id` matches exactly \"{rule_id}\".\n"
+            f"If no such match is found, respond only with:\n"
             f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n\n"
-            f"Step 3: If a match is found, respond in this structured format:\n\n"
+            f"Step 3: If a match is found, respond using this format:\n\n"
             f"NFHS Rule {rule_id} defines the following:\n\n"
-            f"**Rule Title:** {metadata.rule_title} (if present)\n\n"
+            f"**Rule Title:** [Insert value from metadata.rule_title]\n\n"
             f"**Rule Text:**\n"
-            f"{text}\n\n"
+            f"[Insert value from text field]\n\n"
             f"**Additional Notes or Field Insights:**\n"
-            f"- Include key clarifications, field rulings, and context-specific guidance (in bullet format)\n"
+            f"- Add helpful clarifications, game scenarios, or common interpretations here in bullet format."
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
