@@ -79,15 +79,17 @@ def render_rule_section():
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
             f"You are an expert in NFHS football rules. The user is asking about rule {rule_id} from the 2025 rulebook.\n\n"
-            f"Step 1: Examine the metadata field `id` from any retrieved document.\n"
-            f"Step 2: If the value of `id` exactly matches \"{rule_id}\", continue. If it does not match, respond:\n"
+            f"Step 1: You must first inspect the `metadata.id` of any retrieved document.\n"
+            f"Step 2: Only proceed if the value of `metadata.id` is exactly \"{rule_id}\". "
+            f"If no such match is found, respond with:\n"
             f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n\n"
-            f"Step 3: If matched, respond in this format:\n\n"
-            f"NFHS Rule {rule_id} defines the term or topic it addresses. Here is the rule:\n\n"
-            f"Rule {rule_id}: {{insert exact rule text}}\n\n"
-            f"Further key points often included in this rule:\n"
-            f"- {{Insert helpful clarifications or typical rulings in bullet format}}\n\n"
-            f"(Include a debug line: Retrieved document metadata id = {{actual id from metadata}})"
+            f"Step 3: If a match is found, respond in this structured format:\n\n"
+            f"NFHS Rule {rule_id} defines the following:\n\n"
+            f"**Rule Title:** {metadata.rule_title} (if present)\n\n"
+            f"**Rule Text:**\n"
+            f"{text}\n\n"
+            f"**Additional Notes or Field Insights:**\n"
+            f"- Include key clarifications, field rulings, and context-specific guidance (in bullet format)\n"
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
