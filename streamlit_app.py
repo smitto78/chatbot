@@ -78,7 +78,18 @@ def render_rule_section():
     if st.session_state.last_rule_id:
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
-            f"What does rule {rule_id} say?\n\n"
+            f"You are an expert in NFHS football rules. The user is asking about rule {rule_id} from the 2025 rulebook.\n\n"
+            f"Step 1: Check if the metadata field `id` in the retrieved document exactly matches \"{rule_id}\".\n"
+            f"Step 2: If it matches, write a natural, helpful explanation in the following style:\n\n"
+            f"NFHS Rule {rule_id} defines the term or topic it addresses. Here is the rule:\n\n"
+            f"Rule {rule_id}: [insert exact rule text here]\n\n"
+            f"Further key points often included in this rule:\n\n"
+            f"- [Insert helpful clarification, case-style interpretations, or field scenarios, bullet point format]\n\n"
+            f"End your answer with:\n"
+            f\"\"\"If you want the exact text from your uploaded rule book or further explanation from case plays or interpretations, let me know!\"\"\"\n\n"
+            f"Step 3: If the retrieved document’s metadata `id` does NOT match \"{rule_id}\", say:\n"
+            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n"
+            f"Do not guess or summarize other rules. Do not make up a rule."
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
