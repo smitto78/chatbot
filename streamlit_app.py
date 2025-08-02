@@ -76,9 +76,12 @@ def render_rule_section():
     if st.button("Look Up"):
         st.session_state.last_rule_id = rule_input
     if st.session_state.last_rule_id:
-        rule_prompt = (f"Explain NFHS football rule {st.session_state.last_rule_id} "
-                       "from the 2025 rulebook. Include the rule text, enforcement, "
-                       "and a simplified explanation. Add case book examples if available.")
+        rule_prompt = (
+            f"Retrieve the rule entry with `id`: '{st.session_state.last_rule_id}' "
+            "from the 2025 NFHS Football Rules vector file. Include the exact rule text, "
+            "any enforcement details, and a simplified explanation. Provide related case book examples if available."
+        )
+
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
         display_reply(reply)
