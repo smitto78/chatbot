@@ -78,19 +78,19 @@ def render_rule_section():
     if st.session_state.last_rule_id:
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
-            f"You are an NFHS football rules expert. A user has asked about rule {rule_id} from the 2025 rulebook.\n\n"
-            f"Step 1: Check the retrieved document. Only respond if `metadata.id` is exactly equal to \"{rule_id}\".\n"
-            f"Step 2: If the ID matches, format your reply like this:\n\n"
-            f"NFHS Rule {rule_id}:\n\n"
-            f"**Rule Title:** [Insert metadata.rule_title if available]\n"
-            f"**Rule Text:** [Insert the `text` field as-is]\n\n"
-            f"**Additional Notes:**\n"
-            f"- Include helpful clarifications or common field rulings as bullet points (if applicable)\n\n"
-            f"Step 3: If the ID does not match exactly, say:\n"
-            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n"
-            f"Do not guess. Do not summarize nearby rules. Do not infer based on similarity.\n\n"
-            f"Also: Always include this debug line at the top: `Retrieved metadata.id: [actual ID]`"
+            f"You are an NFHS football rules expert. The user is asking about rule {rule_id} from the 2025 rulebook.\n\n"
+            f"Step 1: Search the uploaded rules file for entries where the metadata field `id` is exactly \"{rule_id}\".\n"
+            f"Step 2: If such an entry is found, use the `text` as the rule's definition. Present your answer in this format:\n\n"
+            f"NFHS Rule {rule_id} defines the term or topic it addresses. Here is the rule:\n\n"
+            f"Rule {rule_id}: [insert exact rule text here]\n\n"
+            f"Further key points often included in this rule:\n"
+            f"- [Insert helpful clarifications or common rulings as bullet points]\n\n"
+            f"Step 3: If the metadata `id` is not an exact match, say:\n"
+            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n\n"
+            f"Do not guess or summarize similar rules. Only respond if the metadata.id exactly matches \"{rule_id}\".\n"
+            f"Also output the metadata.id of the matched rule for debug."
         )
+
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
         display_reply(reply)
