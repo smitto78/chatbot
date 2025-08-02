@@ -78,23 +78,22 @@ def render_rule_section():
     if st.session_state.last_rule_id:
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
-            f"You are retrieving rule `{rule_id}` from the 2025 NFHS Football Rules. "
-            f"Search only documents where the `id` exactly equals \"{rule_id}\".\n\n"
-            f"Instructions:\n"
-            f"- If you find a document with an exact `id` match, return:\n"
-            f"  - Rule ID\n"
-            f"  - Rule Title (if available)\n"
-            f"  - Exact Rule Text (quoted from the `text` field)\n"
-            f"  - Enforcement Details (if applicable)\n"
-            f"  - Simplified Explanation\n"
-            f"  - Source: rule_id and filename\n"
-            f"- If no exact match is found, say: 'Rule {rule_id} was not found in the 2025 NFHS Rulebook.'\n"
-            f"- Do not summarize or guess based on partial or similar matches."
+            f"What does rule {rule_id} say?\n\n"
+            "Instructions:\n"
+            f"- Only answer if the retrieved document’s metadata `id` exactly equals \"{rule_id}\".\n"
+            "- Return the following if matched:\n"
+            "  - Rule ID\n"
+            "  - Rule Title (if available)\n"
+            "  - Exact Rule Text (quoted from the text field)\n"
+            "  - Enforcement Details (if applicable)\n"
+            "  - Simplified Explanation\n"
+            "  - Source: rule_id and filename\n"
+            f"- If no match, respond: 'Rule {rule_id} was not found in the 2025 NFHS Rulebook.'\n"
+            "- Do not infer or guess based on similar content. Match only by metadata `id`."
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
         display_reply(reply)
-
 
 # Main layout
 render_general_section()
