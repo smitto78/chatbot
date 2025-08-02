@@ -86,7 +86,7 @@ def render_rule_section():
             f"Further key points often included in this rule:\n\n"
             f"- [Insert helpful clarification, case-style interpretations, or field scenarios, bullet point format]\n\n"
             f"End your answer with:\n"
-            f\"\"\"If you want the exact text from your uploaded rule book or further explanation from case plays or interpretations, let me know!\"\"\"\n\n"
+            f"If you want the exact text from your uploaded rule book or further explanation from case plays or interpretations, let me know!\n\n"
             f"Step 3: If the retrieved document’s metadata `id` does NOT match \"{rule_id}\", say:\n"
             f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n"
             f"Do not guess or summarize other rules. Do not make up a rule."
