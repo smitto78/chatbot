@@ -79,17 +79,6 @@ def render_rule_section():
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
             f"What does rule {rule_id} say?\n\n"
-            "Instructions:\n"
-            f"- Only answer if the retrieved document’s metadata `id` exactly equals \"{rule_id}\".\n"
-            "- Return the following if matched:\n"
-            "  - Rule ID\n"
-            "  - Rule Title (if available)\n"
-            "  - Exact Rule Text (quoted from the text field)\n"
-            "  - Enforcement Details (if applicable)\n"
-            "  - Simplified Explanation\n"
-            "  - Source: rule_id and filename\n"
-            f"- If no match, respond: 'Rule {rule_id} was not found in the 2025 NFHS Rulebook.'\n"
-            "- Do not infer or guess based on similar content. Match only by metadata `id`."
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
