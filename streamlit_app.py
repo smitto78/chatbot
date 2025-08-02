@@ -79,16 +79,15 @@ def render_rule_section():
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
             f"You are an expert in NFHS football rules. The user is asking about rule {rule_id} from the 2025 rulebook.\n\n"
-            f"Step 0: In your answer, include the actual metadata `id` of the retrieved document as a debug line.\n"
-            f"Step 1: Look at the retrieved document and extract the metadata field called `id`.\n"
-            f"Step 2: If the value of `id` is exactly \"{rule_id}\", proceed. If it is not, do not answer the question. Instead, reply:\n"
-            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n"
-            f"Step 3: If it matches, respond in this style:\n\n"
+            f"Step 1: Examine the metadata field `id` from any retrieved document.\n"
+            f"Step 2: If the value of `id` exactly matches \"{rule_id}\", continue. If it does not match, respond:\n"
+            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n\n"
+            f"Step 3: If matched, respond in this format:\n\n"
             f"NFHS Rule {rule_id} defines the term or topic it addresses. Here is the rule:\n\n"
-            f"Rule {rule_id}: [insert exact rule text here]\n\n"
+            f"Rule {rule_id}: {{insert exact rule text}}\n\n"
             f"Further key points often included in this rule:\n"
-            f"- [Insert helpful clarifications or common rulings as bullet points]\n\n"
-            f"Format your entire answer using clear markdown formatting for readability."
+            f"- {{Insert helpful clarifications or typical rulings in bullet format}}\n\n"
+            f"(Include a debug line: Retrieved document metadata id = {{actual id from metadata}})"
         )
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
