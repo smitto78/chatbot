@@ -76,21 +76,24 @@ def render_rule_section():
     if st.button("Look Up"):
         st.session_state.last_rule_id = rule_input
     if st.session_state.last_rule_id:
-        rule_prompt = (
-            f"Retrieve NFHS football rule with `id`: \"{st.session_state.last_rule_id}\" from the 2025 rulebook vector index. "
-            f"Only quote the rule if the `id` field of the matched document is an exact match to \"{st.session_state.last_rule_id}\". "
-            "Do not use similar or related rules. Return only exact matches. Include:\n"
-            "- Rule ID\n"
-            "- Rule Title (if available)\n"
-            "- Exact Rule Text (quote from the text field)\n"
-            "- Enforcement Details (if any)\n"
-            "- Simplified Explanation\n"
-            "- Source: rule_id and file name\n"
-            "If no exact match is found, respond: 'No rule with that ID was found.'"
-        )
-        reply = ask_assistant(rule_prompt)
-        st.session_state.last_rule_id = ""
-        display_reply(reply)
+    rule_id = st.session_state.last_rule_id
+    rule_prompt = (
+        f"You are retrieving rule `{rule_id}` from the 2025 NFHS Football Rules. "
+        f"Search only documents where the `id` exactly equals \"{rule_id}\".\n\n"
+        f"Instructions:\n"
+        f"- If you find a document with an exact `id` match, return:\n"
+        f"  - Rule ID\n"
+        f"  - Rule Title (if available)\n"
+        f"  - Exact Rule Text (quoted from the `text` field)\n"
+        f"  - Enforcement Details (if applicable)\n"
+        f"  - Simplified Explanation\n"
+        f"  - Source: rule_id and filename\n"
+        f"- If no exact match is found, say: 'Rule {rule_id} was not found in the 2025 NFHS Rulebook.'\n"
+        f"- Do not summarize or guess based on partial or similar matches."
+    )
+    reply = ask_assistant(rule_prompt)
+    st.session_state.last_rule_id = ""
+    display_reply(reply)
 
 # Main layout
 render_general_section()
