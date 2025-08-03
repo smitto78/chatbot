@@ -20,7 +20,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
             tools=[{"type": "file_search", "vector_store_ids": [VS_VECTOR_STORE_ID]}],
             max_output_tokens=2048,
-            store=true
+            store=True
         )
 
         for item in response.output:
