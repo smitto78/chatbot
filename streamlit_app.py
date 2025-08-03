@@ -1,12 +1,20 @@
 import time
 import streamlit as st
 from openai import OpenAI
+from openai_agents import trace, Runner, AgentConfig
 
 # --- CONFIG ---
 RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
-VS_VECTOR_STORE_ID = "vs_688ed4dbc96081919239650f07d7046f"
+VS_VECTOR_STORE_ID = "vs_688ed4dbc96081918ceeaa63a83f4725"
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
+
+agent_config = AgentConfig(
+    assistant_id=ASSISTANT_ID,
+    execution_params={
+        "file_search": {"vector_store_ids": [VS_VECTOR_STORE_ID]}
+    }
+)
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
@@ -16,7 +24,7 @@ st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 for key in ["thread_id", "last_general_prompt", "last_general_reply", "last_rule_id"]:
     st.session_state.setdefault(key, "")
 
-# --- RULE LOOKUP FUNCTION ---
+# --- RULE LOOKUP FUNCTION (unchanged) ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
@@ -36,74 +44,41 @@ def ask_rule_lookup(rule_id: str) -> str | None:
                     if hasattr(block, "text"):
                         return block.text.strip()
 
-        return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure it exists or improve your prompt."
+        return f"⚠️ No written response was generated for rule `{rule_id}`."
 
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
 
-# --- GENERAL OPEN-ENDED QUESTION FUNCTION ---
-def ask_general(prompt: str) -> str | None:
-    if not st.session_state.thread_id:
-        thread = client.beta.threads.create()
-        st.session_state.thread_id = thread.id
+# --- GENERAL OPEN-ENDED QUESTION FUNCTION WITH TRACING ---
+def ask_general(prompt_text: str) -> str | None:
+    with trace(workflow_name="General_Q&A", group_id=prompt_text):
+        result = Runner.run(agent_config, user_input=prompt_text, input_type="text")
+    return result.content if hasattr(result, "content") else None
 
-    client.beta.threads.messages.create(
-        thread_id=st.session_state.thread_id,
-        role="user",
-        content=prompt
-    )
-
-    run = client.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
-        assistant_id=ASSISTANT_ID
-    )
-
-    with st.spinner("Assistant is thinking..."):
-        while True:
-            status = client.beta.threads.runs.retrieve(
-                thread_id=st.session_state.thread_id,
-                run_id=run.id
-            ).status
-            if status == "completed":
-                break
-            if status == "failed":
-                st.error("❌ Assistant run failed.")
-                return None
-            time.sleep(1)
-
-    msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-    for msg in reversed(msgs):
-        if msg.role == "assistant" and msg.run_id == run.id:
-            return msg.content[0].text.value
-    return None
-
-# --- RULE LOOKUP UI ---
-def render_rule_section():
-    st.markdown("## 🔍 Look Up a Rule by ID")
-    rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
-    if st.button("Look Up"):
-        if rule_input.strip():
-            result = ask_rule_lookup(rule_input.strip())
-            st.markdown("### 📘 Rule Lookup Result")
-            st.markdown(result or f"⚠️ No result returned for rule `{rule_input}`.")
-        else:
-            st.warning("Please enter a rule ID to look up.")
-
-# --- GENERAL OPEN-ENDED Q&A UI ---
+# --- UI SECTIONS ---
 def render_general_section():
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
-    prompt = st.text_area("Enter a question or test-style scenario:",
-                          placeholder="e.g., Can Team A recover their own punt after a muff?",
-                          key="general_prompt")
-    if st.button("Ask"):
+    prompt = st.text_area("Enter a question or scenario:", key="general_prompt")
+    if st.button("Ask General Question"):
         st.session_state.last_general_prompt = prompt.strip()
 
     if st.session_state.last_general_prompt:
         reply = ask_general(st.session_state.last_general_prompt)
         st.session_state.last_general_reply = reply or ""
-        st.markdown("### 🧠 Assistant Reply")
+        st.markdown("### 🧠 General Assistant Reply")
         st.markdown(reply or "⚠️ No response received.")
+
+def render_rule_section():
+    st.markdown("## 🔍 Look Up a Rule by ID")
+    rule_input = st.text_input("Enter Rule ID", key="rule_input")
+    if st.button("Look Up Rule"):
+        st.session_state.last_rule_id = rule_input.strip()
+
+    if st.session_state.last_rule_id:
+        result = ask_rule_lookup(st.session_state.last_rule_id)
+        st.markdown("### 📘 Rule Lookup Result")
+        st.markdown(result or f"⚠️ No result returned for rule `{st.session_state.last_rule_id}`.")
 
 # --- MAIN ---
 render_general_section()
