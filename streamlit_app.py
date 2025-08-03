@@ -15,36 +15,44 @@ st.caption("Ask a question or look up a rule. Built for players, coaches, and of
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
-        # Frame the input with context to align with assistant expectations
-        input_text = f"What does rule {rule_id} say?"
-
-        response = client.responses.create(
-            prompt={
-                "id": RULE_PROMPT_ID,
-                "version": "11"
-            },
-            input=[{"role": "user", "content": input_text}],
-            text={"format": {"type": "text"}},
-            reasoning={},
-            tools=[{
-                "type": "file_search",
-                "vector_store_ids": [VS_VECTOR_STORE_ID]
-            }],
-            max_output_tokens=2048,
-            store=True
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an NFHS football rules expert. The user is asking about a specific rule "
+                        "from the 2025 rulebook. Search the attached vector store for entries where the metadata "
+                        f"field `id` is exactly equal to `{rule_id}`. If found, use the `text` field as the rule’s definition. "
+                        "Format your answer as:\n\n"
+                        f"NFHS Rule {rule_id} defines the term or topic it addresses. Here is the rule:\n\n"
+                        f"Rule {rule_id}: [insert rule text]\n\n"
+                        "Further key points:\n- [clarifications or rulings]\n\n"
+                        f"If `{rule_id}` is not found, respond: \"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\""
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"What does rule {rule_id} say?"
+                }
+            ],
+            tools=[
+                {
+                    "type": "file_search",
+                    "vector_store_ids": [VS_VECTOR_STORE_ID]
+                }
+            ],
+            tool_choice="auto",
+            max_tokens=1024,
+            temperature=0.2,
         )
 
-        # Iterate through the response output to find a valid text block
-        for item in response.output:
-            if hasattr(item, "text") and hasattr(item.text, "value"):
-                return item.text.value
+        # Return assistant response
+        return response.choices[0].message.content.strip()
 
-        return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure this rule exists in your file search."
-    
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
-
 
 # --- RULE LOOKUP UI ---
 def render_rule_section():
