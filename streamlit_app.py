@@ -1,16 +1,17 @@
 import time
 import asyncio
+import os
 import streamlit as st
 from openai import OpenAI
 from typing import Optional
-from agents import Agent, Runner
-from agents.tracing import trace  # Tracing only for QA
-from agents import set_default_openai_key
+from agents import Agent, Runner, set_default_openai_key
+from agents.tracing import trace
 
-# Set API key for agents SDK
+# --- ENVIRONMENT SETUP ---
+os.environ["OPENAI_TRACING_ENABLED"] = "true"
+
+# --- API KEYS ---
 set_default_openai_key(st.secrets["openai"]["api_key"])
-
-# Set API key for OpenAI SDK client
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # --- CONFIGURATION ---
@@ -20,8 +21,6 @@ CONFIG = {
     "ASSISTANT_ID": "asst_AAbf5acxGSYy6NpApw2oqiZg"
 }
 
-client = OpenAI(api_key=st.secrets["openai"]["api_key"])
-
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
@@ -30,10 +29,10 @@ st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 for key in ("thread_id", "last_general_prompt", "last_general_reply", "last_rule_id"):
     st.session_state.setdefault(key, "")
 
-# --- RULE LOOKUP FUNCTION (unchanged) ---
-def ask_rule_lookup(rule_id: str) -> Optional[str]:
+# --- RULE LOOKUP FUNCTION (restored version) ---
+def ask_rule_lookup(rule_id: str) -> str | None:
     try:
-        response = client.responses.create(
+        res = client.responses.create(
             prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "29"},
             input=[{"role": "user", "content": f"id:{rule_id}"}],
             tools=[{"type": "file_search", "vector_store_ids": [CONFIG["VECTOR_STORE_ID"]]}],
@@ -42,23 +41,23 @@ def ask_rule_lookup(rule_id: str) -> Optional[str]:
             store=True
         )
 
-        for item in response.output:
-            if hasattr(item, "text") and hasattr(item.text, "value"):
-                return item.text.value.strip()
-            if hasattr(item, "content"):
-                for block in item.content:
+        for out in res.output:
+            if hasattr(out, "text") and hasattr(out.text, "value"):
+                return out.text.value.strip()
+            if hasattr(out, "content"):
+                for block in out.content:
                     if hasattr(block, "text"):
                         return block.text.strip()
 
         return f"⚠️ No written response was generated for rule `{rule_id}`."
-    except Exception as exc:
-        st.error(f"❌ Rule lookup failed: {exc}")
+
+    except Exception as e:
+        st.error(f"❌ Rule lookup failed: {e}")
         return None
 
 # --- GENERAL Q&A WITH TRACING ENABLED ---
 async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
     agent = Agent(name="Rules QA Assistant", instructions="Answer NFHS football rules questions.")
-    # Use synchronous context manager
     with trace(workflow_name="NFHS_QA", group_id=group_id or None):
         result = await Runner.run(agent, prompt)
     return result.final_output
@@ -71,7 +70,7 @@ def ask_general(prompt: str) -> str | None:
         st.error(f"❌ QA lookup failed: {e}")
         return None
 
-# --- UI RENDER FUNCTIONS ---
+# --- RULE LOOKUP UI ---
 def render_rule_section() -> None:
     st.markdown("## 🔍 Look Up a Rule by ID")
     rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
@@ -85,6 +84,7 @@ def render_rule_section() -> None:
         else:
             st.warning("Please enter a rule ID to look up.")
 
+# --- GENERAL Q&A UI ---
 def render_general_section() -> None:
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
     prompt = st.text_area("Enter a question or test-style scenario:",
@@ -99,10 +99,11 @@ def render_general_section() -> None:
         st.markdown("### 🧠 Assistant Reply")
         st.markdown(reply or "⚠️ No response received.")
 
+# --- MAIN ---
 def main() -> None:
-    render_general_section()
+    render_rule_section()  # Rule lookup first for consistency
     st.markdown("---")
-    render_rule_section()
+    render_general_section()
 
 if __name__ == "__main__":
     main()
