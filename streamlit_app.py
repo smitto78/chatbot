@@ -57,7 +57,7 @@ def ask_general(prompt: str) -> str | None:
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "6"},
+            prompt={"id": RULE_PROMPT_ID, "version": "7"},
             input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
             tools=[{
                 "type": "file_search",
