@@ -5,6 +5,9 @@ from openai import OpenAI
 from typing import Optional
 from agents import Agent, Runner
 from agents.tracing import trace  # Tracing only for QA
+from openai import settings
+settings.api_key = st.secrets["openai"]["api_key"]
+
 
 # --- CONFIGURATION ---
 CONFIG = {
@@ -58,6 +61,9 @@ async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
 
 def ask_general(prompt: str) -> str | None:
     try:
+        from openai import settings
+        settings.api_key = st.secrets["openai"]["api_key"]
+
         group_id = st.session_state.thread_id or "default-thread"
         return asyncio.run(_qa_agent_call(prompt, group_id))
     except Exception as e:
