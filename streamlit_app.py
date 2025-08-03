@@ -20,7 +20,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             input=[
                 {
                     "role": "user",
-                    "content": f"if:{rule_id}"
+                    "content": f"id:{rule_id}"
                 }
             ],
             tools=[{
