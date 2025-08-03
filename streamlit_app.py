@@ -1,15 +1,11 @@
 import time
 import streamlit as st
 from openai import OpenAI
+from agents import Agent, Runner, trace, set_trace_processors
+from langsmith.wrappers import OpenAIAgentsTracingProcessor
 
-# Optional: LangSmith tracing integration
-try:
-    from langsmith.wrappers import OpenAIAgentsTracingProcessor
-    from agents import Runner, Agent, trace, set_trace_processors
-    set_trace_processors([OpenAIAgentsTracingProcessor()])
-    tracing_enabled = True
-except ImportError:
-    tracing_enabled = False
+# --- Tracing Setup ---
+set_trace_processors([OpenAIAgentsTracingProcessor()])
 
 # --- CONFIG ---
 RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
@@ -51,48 +47,14 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
 
-# --- GENERAL OPEN-ENDED QUESTION FUNCTION (with optional tracing) ---
+# --- GENERAL Q&A FUNCTION (with tracing) ---
 def ask_general(prompt: str) -> str | None:
-    if not st.session_state.thread_id:
-        thread = client.beta.threads.create()
-        st.session_state.thread_id = thread.id
+    agent = Agent(name="NFHS-General-Q&A", instructions="Answer football rules questions for referees.")
 
-    if tracing_enabled:
-        with trace(workflow_name="NFHS General Q&A", group_id=prompt):
-            return run_assistant(prompt)
-    else:
-        return run_assistant(prompt)
+    with trace(workflow_name="NFHS General Q&A", group_id=prompt):
+        result = Runner.run(agent, user_input=prompt)
 
-def run_assistant(prompt: str) -> str | None:
-    client.beta.threads.messages.create(
-        thread_id=st.session_state.thread_id,
-        role="user",
-        content=prompt
-    )
-
-    run = client.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
-        assistant_id=ASSISTANT_ID
-    )
-
-    with st.spinner("Assistant is thinking..."):
-        while True:
-            status = client.beta.threads.runs.retrieve(
-                thread_id=st.session_state.thread_id,
-                run_id=run.id
-            ).status
-            if status == "completed":
-                break
-            if status == "failed":
-                st.error("❌ Assistant run failed.")
-                return None
-            time.sleep(1)
-
-    msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-    for msg in reversed(msgs):
-        if msg.role == "assistant" and msg.run_id == run.id:
-            return msg.content[0].text.value
-    return None
+    return result.final_output if hasattr(result, "final_output") else None
 
 # --- RULE LOOKUP UI ---
 def render_rule_section():
@@ -109,8 +71,12 @@ def render_rule_section():
 # --- GENERAL Q&A UI ---
 def render_general_section():
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
-    prompt = st.text_area("Enter a question or test-style scenario:", key="general_prompt")
-    if st.button("Ask"):
+    prompt = st.text_area(
+        "Enter a question or test-style scenario:",
+        placeholder="e.g., Can Team A recover their own punt after a muff?",
+        key="general_prompt"
+    )
+    if st.button("Ask General"):
         st.session_state.last_general_prompt = prompt.strip()
 
     if st.session_state.last_general_prompt:
