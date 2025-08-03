@@ -67,15 +67,21 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             store=False
         )
 
-        # Safely scan outputs for a generated assistant reply
-        for out in res.output:
-            if hasattr(out, "text") and hasattr(out.text, "value"):
-                return out.text.value
+        # Try structured `output` (if available)
+        if hasattr(res, "output"):
+            for out in res.output:
+                if hasattr(out, "text") and hasattr(out.text, "value"):
+                    return out.text.value
 
-        return f"⚠️ No written response was generated for rule `{rule_id}`. Please ensure this rule exists or update your prompt to instruct the assistant to respond with text."
+        # Fallback: Try unified response structure
+        if hasattr(res, "response") and hasattr(res.response, "text") and hasattr(res.response.text, "value"):
+            return res.response.text.value
+
+        return f"⚠️ No written response was generated for rule `{rule_id}`."
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
+
 
 # --- UI SECTION HANDLERS ---
 def render_general_section():
