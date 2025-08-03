@@ -26,6 +26,6 @@ for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply", "rule_input", "ru
     st.session_state.setdefault(key, "")
 
 # Render sections
-rule_lookup.render_rule_section())
+rule_lookup.render_rule_section()
 st.markdown("---")
 general_qa.render_general_section()
