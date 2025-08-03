@@ -55,11 +55,21 @@ def ask_general(prompt: str) -> str | None:
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "5"},
-            input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
+            prompt={
+                "id": RULE_PROMPT_ID,
+                "version": "4"
+            },
+            variables={
+                "rule_id": rule_id
+            },
             text={"format": {"type": "text"}},
             reasoning={},
-            tools=[{"type": "file_search", "vector_store_ids": [VS_VECTOR_STORE_ID]}],
+            tools=[
+                {
+                    "type": "file_search",
+                    "vector_store_ids": [VS_VECTOR_STORE_ID]
+                }
+            ],
             max_output_tokens=2048,
             store=False
         )
@@ -67,6 +77,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
+
 
 # --- UI SECTION HANDLERS ---
 def render_general_section():
