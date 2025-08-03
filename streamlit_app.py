@@ -129,16 +129,20 @@ def render_main():
 # --- Show Responses ---
 if st.session_state.last_rule_id and st.session_state.last_rule_result:
     rule_ref = extract_rule_reference(st.session_state.last_rule_result)
+    actual_rule_id = rule_ref.split(',')[0] if rule_ref else ""
+
     if rule_ref:
-        st.markdown(f"### 📘 Rule Lookup: {rule_ref}")
-        if not rule_ids_match(st.session_state.last_rule_id, rule_ref.split(',')[0]):
+        if rule_ids_match(st.session_state.last_rule_id, actual_rule_id):
+            st.markdown(f"### 📘 Rule Lookup: {rule_ref}")
+            st.markdown(st.session_state.last_rule_result)
+        else:
             st.warning(
-                f"The assistant returned **{rule_ref}**, which may differ from your input `{st.session_state.last_rule_id}`. Please verify this is the correct rule."
+                f"❗ The assistant returned **{rule_ref}**, which does not match your input `{st.session_state.last_rule_id}`.\n"
+                "This may be a hallucinated or incorrect rule. Please recheck the rule ID or try a nearby section."
             )
     else:
         st.markdown(f"### 📘 Rule Lookup: {st.session_state.last_rule_id}")
-
-    st.markdown(st.session_state.last_rule_result)
+        st.markdown(st.session_state.last_rule_result)
 
 elif st.session_state.last_prompt and st.session_state.last_reply:
     st.markdown("### 🧠 Assistant Reply")
