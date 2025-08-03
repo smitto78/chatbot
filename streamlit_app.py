@@ -24,8 +24,9 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         )
 
         # Display full raw output for debugging
-        for item in response.output:
-            if hasattr(item, "text") and hasattr(item.text, "value"):
+        for item in getattr(response, "output", []):
+            # Ensure we handle both file_search and text outputs
+            if item.type == "text" and hasattr(item, "text") and hasattr(item.text, "value"):
                 return item.text.value
 
         return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure it exists or improve your prompt."
