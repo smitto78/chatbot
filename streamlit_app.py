@@ -31,13 +31,14 @@ def ask_assistant(prompt: str) -> str | None:
     client.beta.threads.messages.create(
         thread_id=st.session_state.thread_id,
         role="user",
-        content=prompt
+        content=prompt,
+        file_ids=[VECTOR_FILE_ID]  # ✅ Moved here
     )
 
     run = client.beta.threads.runs.create(
         thread_id=st.session_state.thread_id,
-        assistant_id=ASSISTANT_ID,
-        file_ids=[VECTOR_FILE_ID]  # attach vector file to thread
+        assistant_id=ASSISTANT_ID
+        # ❌ Do NOT include file_ids here
     )
 
     with st.spinner("Assistant is reviewing the rules..."):
@@ -58,6 +59,7 @@ def ask_assistant(prompt: str) -> str | None:
         if msg.role == "assistant" and msg.run_id == run.id:
             return msg.content[0].text.value
     return None
+
 
 # --- DISPLAY OUTPUT CLEANLY ---
 def display_reply(reply: str):
