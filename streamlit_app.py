@@ -15,6 +15,11 @@ for key in ["thread_id", "last_prompt", "last_reply", "last_rule_id", "last_rule
 def is_rule_id(text: str) -> bool:
     return bool(re.match(r"^\d+-\d+(?:-\d+[a-z]?)?$", text.strip()))
 
+# --- RULE HEADER PARSING ---
+def extract_rule_reference(text: str) -> str | None:
+    match = re.search(r"Rule Reference: (.+)", text)
+    return match.group(1).strip() if match else None
+
 # --- RULE LOOKUP FUNCTION (using Assistant thread) ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
@@ -119,7 +124,11 @@ def render_main():
 
     # --- Show Responses ---
     if st.session_state.last_rule_id and st.session_state.last_rule_result:
-        st.markdown(f"### 📘 Rule Lookup: {st.session_state.last_rule_id}")
+        rule_ref = extract_rule_reference(st.session_state.last_rule_result)
+        if rule_ref:
+            st.markdown(f"### 📘 Rule Lookup: {rule_ref}")
+        else:
+            st.markdown(f"### 📘 Rule Lookup: {st.session_state.last_rule_id}")
         st.markdown(st.session_state.last_rule_result)
 
     elif st.session_state.last_prompt and st.session_state.last_reply:
