@@ -4,7 +4,7 @@ from openai import OpenAI
 
 # --- CONFIG ---
 RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
-VS_VECTOR_STORE_ID = "vs_68883bb7d06881918ceeaa63a83f4725"
+VS_VECTOR_STORE_ID = "vs_688ed4dbc96081919239650f07d7046f"
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # --- PAGE SETUP ---
@@ -16,7 +16,7 @@ st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "22"},
+            prompt={"id": RULE_PROMPT_ID, "version": "23"},
             input=[
                 {
                     "role": "user",
