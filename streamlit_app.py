@@ -1,131 +1,129 @@
-import re
 import time
+import asyncio
+import os
 import streamlit as st
 from openai import OpenAI
+from typing import Optional
+from agents import Agent, Runner, set_default_openai_key
+from agents.tracing import trace
 
-# --- CONFIG ---
-ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
-RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
-VECTOR_STORE_ID = "vs_688ed4dbc96081919239650f07d7046f"
+# --- ENVIRONMENT SETUP ---
+os.environ["OPENAI_TRACING_ENABLED"] = "true"
+
+# --- API KEYS ---
+set_default_openai_key(st.secrets["openai"]["api_key"])
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-# --- SESSION STATE ---
-for key in ["thread_id", "last_prompt", "last_reply", "last_rule_id", "last_rule_result"]:
-    st.session_state.setdefault(key, "")
+# --- CONFIGURATION ---
+CONFIG = {
+    "RULE_PROMPT_ID": "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9",
+    "VECTOR_STORE_ID": "vs_688ed4dbc96081919239650f07d7046f",
+    "ASSISTANT_ID": "asst_AAbf5acxGSYy6NpApw2oqiZg"
+}
 
-# --- HELPERS ---
-def is_rule_id(text: str) -> bool:
-    return bool(re.match(r"^\d+-\d+(?:-\d+[a-z]?)?$", text.strip()))
+# --- PAGE SETUP ---
+st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
+st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 
-def extract_rule_reference(text: str) -> str | None:
-    m = re.search(r"Rule Reference: ([\w-]+)", text)
-    return m.group(1).strip() if m else None
-
-def rule_ids_match(requested: str, returned: str) -> bool:
-    return requested.strip().lower() == returned.strip().lower()
-
-# --- RULE LOOKUP: strict exact match via Responses API ---
+# --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "32"},
-            input=[{"role": "user", "content": f"id:{rule_id}"}],
+            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "29"},
+            input=[
+                {
+                    "role": "user",
+                    "content": f"id:{rule_id}"
+                }
+            ],
             tools=[{
                 "type": "file_search",
-                "vector_store_ids": [VECTOR_STORE_ID],
-                "filters": {
-                    "type": "and",
-                    "filters": [{
-                        "type": "eq",
-                        "key": "rule_id",
-                        "value": rule_id
-                    }]
-                },
-                "max_num_results": 1
+                "vector_store_ids": [CONFIG["VECTOR_STORE_ID"]]
             }],
             text={"format": {"type": "text"}},
-            temperature=0.2,
             max_output_tokens=2048,
             store=True
         )
+
+        # Scan the output for assistant-generated response
         for out in res.output:
-            text = getattr(getattr(out, "text", None), "value", None)
-            if text:
-                return text.strip()
-        return f"Rule {rule_id} was not found in the 2025 NFHS Rulebook."
+            if hasattr(out, "text") and hasattr(out.text, "value"):
+                return out.text.value.strip()
+            if hasattr(out, "content"):
+                for block in out.content:
+                    if hasattr(block, "text"):
+                        return block.text.strip()
+
+        return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure it exists or improve your prompt."
+
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
 
-# --- GENERAL Q&A ---
+# --- GENERAL Q&A WITH TRACING ENABLED ---
+async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
+    agent = Agent(name="Rules QA Assistant", instructions="Answer NFHS football rules questions.")
+    with trace(workflow_name="NFHS_QA", group_id=group_id or None):
+        result = await Runner.run(agent, prompt)
+    return result.final_output
+
 def ask_general(prompt: str) -> str | None:
     try:
-        if not st.session_state.thread_id:
-            thread = client.beta.threads.create()
-            st.session_state.thread_id = thread.id
-
-        client.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
-            role="user",
-            content=prompt
-        )
-        run = client.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id,
-            assistant_id=ASSISTANT_ID,
-            temperature=0.7
-        )
-        with st.spinner("Assistant is thinking..."):
-            while True:
-                status = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id,
-                    run_id=run.id
-                ).status
-                if status == "completed":
-                    break
-                if status == "failed":
-                    st.error("❌ Assistant run failed.")
-                    return None
-                time.sleep(1)
-        msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-        for msg in reversed(msgs):
-            if msg.role == "assistant" and msg.run_id == run.id:
-                return msg.content[0].text.value
-        return None
+        group_id = st.session_state.qa_thread_id or "default-thread"
+        return asyncio.run(_qa_agent_call(prompt, group_id))
     except Exception as e:
-        st.error(f"❌ Assistant error: {e}")
+        st.error(f"❌ QA lookup failed: {e}")
         return None
 
-# --- UI ---
-def render_main():
-    st.markdown("## 💬 Ask About Rules or Look Up by ID")
-    prompt = st.text_area("Type a rule ID (e.g., 8-5-3c) or scenario/question:", key="user_prompt")
-    if st.button("Submit", key="submit_prompt"):
-        query = prompt.strip()
-        if is_rule_id(query):
-            st.session_state.last_rule_id = query
-            st.session_state.last_rule_result = ask_rule_lookup(query)
-            st.session_state.last_prompt = ""
-            st.session_state.last_reply = ""
-        else:
-            st.session_state.last_prompt = query
-            st.session_state.last_reply = ask_general(query)
-            st.session_state.last_rule_id = ""
-            st.session_state.last_rule_result = ""
+# --- RULE LOOKUP UI ---
+def render_rule_section():
+    # Clear general Q&A state if rule input is used
+    if st.session_state.get("rule_input"):
+        for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
+            st.session_state[key] = ""
 
-    # Show Responses
-    if st.session_state.last_rule_id and st.session_state.last_rule_result:
-        rule_ref = extract_rule_reference(st.session_state.last_rule_result)
-        if rule_ref and rule_ids_match(st.session_state.last_rule_id, rule_ref):
-            st.markdown(f"### 📘 Rule Lookup: {rule_ref}")
-            st.markdown(st.session_state.last_rule_result)
+    st.markdown("## 🔍 Look Up a Rule by ID")
+    rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
+    if st.button("Look Up", key="rule_button"):
+        if rule_input.strip():
+            result = ask_rule_lookup(rule_input.strip())
+            st.session_state.rule_result = result
         else:
-            st.warning(f"❗ No exact match found for Rule `{st.session_state.last_rule_id}`. Please check your input or try another rule ID.")
-    elif st.session_state.last_prompt and st.session_state.last_reply:
+            st.warning("Please enter a rule ID to look up.")
+
+    if st.session_state.get("rule_result"):
+        st.markdown("### 📘 Rule Lookup Result")
+        st.markdown(st.session_state.rule_result or "⚠️ No response.")
+
+# --- GENERAL Q&A UI ---
+def render_general_section() -> None:
+    for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
+        st.session_state.setdefault(key, "")
+
+    # Clear rule lookup state if general prompt is used
+    if st.session_state.get("qa_prompt"):
+        st.session_state["rule_input"] = ""
+        st.session_state["rule_result"] = ""
+
+    st.markdown("## 💬 Ask a Question About Rules or Scenarios")
+    prompt = st.text_area("Enter a question or test-style scenario:",
+                          placeholder="e.g., Can Team A recover their own punt after a muff?",
+                          key="qa_prompt")
+
+    if st.button("Ask", key="qa_button"):
+        st.session_state.qa_last_prompt = prompt.strip()
+
+    if st.session_state.qa_last_prompt:
+        reply = ask_general(st.session_state.qa_last_prompt)
+        st.session_state.qa_last_reply = reply or ""
         st.markdown("### 🧠 Assistant Reply")
-        st.markdown(st.session_state.last_reply)
+        st.markdown(reply or "⚠️ No response received.")
 
-st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
-st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
-st.caption("Ask rule questions or look up by ID. Powered by OpenAI's Assistant API.")
+# --- MAIN ---
+def main() -> None:
+    render_rule_section()
+    st.markdown("---")
+    render_general_section()
 
-render_main()
+if __name__ == "__main__":
+    main()
