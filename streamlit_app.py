@@ -2,79 +2,96 @@ import time
 import streamlit as st
 from openai import OpenAI
 
+# --- CONFIG ---
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
+VECTOR_FILE_ID = "file-Py3QLxmV7Mmu81K2a6WqQG"  # ← replace with your uploaded file ID
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
+# --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
 
-# Initialize session state defaults
+# --- SESSION STATE SETUP ---
 default_keys = {
     "last_general_prompt": "",
     "last_general_reply": "",
     "last_rule_id": "",
+    "thread_id": "",
 }
 for k, default in default_keys.items():
     st.session_state.setdefault(k, default)
 
+# --- ASK FUNCTION WITH SESSION + VECTOR FILE SUPPORT ---
 def ask_assistant(prompt: str) -> str | None:
-    thread = client.beta.threads.create()
-    client.beta.threads.messages.create(thread_id=thread.id, role="user", content=prompt)
-    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=ASSISTANT_ID)
+    if not st.session_state.thread_id:
+        thread = client.beta.threads.create()
+        st.session_state.thread_id = thread.id
+
+    client.beta.threads.messages.create(
+        thread_id=st.session_state.thread_id,
+        role="user",
+        content=prompt
+    )
+
+    run = client.beta.threads.runs.create(
+        thread_id=st.session_state.thread_id,
+        assistant_id=ASSISTANT_ID,
+        file_ids=[VECTOR_FILE_ID]  # attach vector file to thread
+    )
+
     with st.spinner("Assistant is reviewing the rules..."):
         while True:
-            status = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id).status
-            if status == "completed":
+            run_status = client.beta.threads.runs.retrieve(
+                thread_id=st.session_state.thread_id,
+                run_id=run.id
+            ).status
+            if run_status == "completed":
                 break
-            if status == "failed":
+            if run_status == "failed":
                 st.error("❌ Assistant run failed.")
                 return None
             time.sleep(1)
-    msgs = client.beta.threads.messages.list(thread_id=thread.id).data
-    for msg in reversed(msgs):
+
+    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+    for msg in reversed(messages):
         if msg.role == "assistant" and msg.run_id == run.id:
             return msg.content[0].text.value
     return None
 
+# --- DISPLAY OUTPUT CLEANLY ---
 def display_reply(reply: str):
     if not reply:
         st.warning("⚠️ No reply received.")
         return
-    parts = reply.split("### 🧠 Explanation")
-    if len(parts) > 1:
-        explanation = parts[1].split("###")[0].strip()
-        st.markdown("### 🧠 Simplified Explanation (for players)")
-        st.markdown(explanation)
-        st.markdown("---")
-    if "### 📜 Rule Content" in reply:
-        section = reply.split("### 📜 Rule Content")[-1].split("###")[0].strip()
-        with st.expander("📜 Full Rule Content", expanded=True):
-            st.markdown(section)
-    if "### 📎 Source" in reply:
-        src = reply.split("### 📎 Source")[-1].strip()
-        with st.expander("📎 Source Details", expanded=True):
-            st.markdown(src)
-    with st.expander("🧾 Full Assistant Response (click to expand)", expanded=False):
-        st.markdown(reply)
+    st.markdown("### 🧠 Assistant Reply")
+    st.markdown(reply)
 
+# --- GENERAL SCENARIO SECTION ---
 def render_general_section():
     col1, col2 = st.columns([3, 1])
     with col1:
-        prompt = st.text_area("Type your scenario or question:", placeholder="e.g., Can Team K recover their own punt?", key="general_prompt")
+        prompt = st.text_area(
+            "Type your scenario or question:",
+            placeholder="e.g., Can Team K recover their own punt?",
+            key="general_prompt"
+        )
     with col2:
         if st.button("Ask"):
             st.session_state.last_general_prompt = st.session_state.general_prompt
+
     if st.session_state.last_general_prompt:
         reply = ask_assistant(st.session_state.last_general_prompt)
         st.session_state.last_general_reply = reply or ""
         display_reply(reply)
 
+# --- RULE LOOKUP SECTION ---
 def render_rule_section():
     st.markdown("---")
-    rule_input = st.text_input("Enter Rule ID (e.g., 7‑5‑2e):", key="rule_input")
+    rule_input = st.text_input("Enter Rule ID (e.g., 3-4-4j):", key="rule_input")
     if st.button("Look Up"):
-        st.session_state.last_rule_id = rule_input
+        st.session_state.last_rule_id = rule_input.strip()
+
     if st.session_state.last_rule_id:
         rule_id = st.session_state.last_rule_id
         rule_prompt = (
@@ -85,12 +102,14 @@ def render_rule_section():
             f"Rule {rule_id}: [insert exact rule text here]\n\n"
             f"Further key points often included in this rule:\n"
             f"- [Insert helpful clarifications or common rulings as bullet points]\n\n"
+            f"Step 3: If no rule with `id` exactly matching \"{rule_id}\" is found, say:\n"
+            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n"
+            f"Do not guess or assume. Only respond if there is an exact `id` match."
         )
-
         reply = ask_assistant(rule_prompt)
         st.session_state.last_rule_id = ""
         display_reply(reply)
 
-# Main layout
+# --- MAIN RENDER ---
 render_general_section()
 render_rule_section()
