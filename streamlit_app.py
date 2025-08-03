@@ -5,8 +5,6 @@ from openai import OpenAI
 
 # --- CONFIG ---
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
-RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
-VECTOR_STORE_ID = "vs_688ed4dbc96081919239650f07d7046f"
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # --- SESSION STATE ---
@@ -17,28 +15,46 @@ for key in ["thread_id", "last_prompt", "last_reply", "last_rule_id", "last_rule
 def is_rule_id(text: str) -> bool:
     return bool(re.match(r"^\d+-\d+(?:-\d+[a-z]?)?$", text.strip()))
 
-# --- RULE LOOKUP FUNCTION ---
+# --- RULE LOOKUP FUNCTION (using Assistant thread) ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
-        res = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "32"},
-            input=[{"role": "user", "content": f"id:{rule_id}"}],
-            tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
-            text={"format": {"type": "text"}},
-            max_output_tokens=2048,
-            temperature=0.2,
-            store=True
+        if not st.session_state.thread_id:
+            thread = client.beta.threads.create()
+            st.session_state.thread_id = thread.id
+
+        client.beta.threads.messages.create(
+            thread_id=st.session_state.thread_id,
+            role="user",
+            content=f"id:{rule_id}"
         )
-        for out in res.output:
-            if hasattr(out, "text") and hasattr(out.text, "value"):
-                return out.text.value.strip()
-            if hasattr(out, "content"):
-                for block in out.content:
-                    if hasattr(block, "text"):
-                        return block.text.strip()
+
+        run = client.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id,
+            assistant_id=ASSISTANT_ID,
+            temperature=0.2  # low temperature for deterministic rule results
+        )
+
+        with st.spinner("Looking up rule..."):
+            while True:
+                status = client.beta.threads.runs.retrieve(
+                    thread_id=st.session_state.thread_id,
+                    run_id=run.id
+                ).status
+                if status == "completed":
+                    break
+                if status == "failed":
+                    st.error("❌ Rule lookup run failed.")
+                    return None
+                time.sleep(1)
+
+        msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+        for msg in reversed(msgs):
+            if msg.role == "assistant" and msg.run_id == run.id:
+                return msg.content[0].text.value
+
         return f"⚠️ No response generated for rule `{rule_id}`."
     except Exception as e:
-        st.error(f"❌ Rule lookup failed: {e}")
+        st.error(f"❌ Rule lookup error: {e}")
         return None
 
 # --- GENERAL Q&A FUNCTION ---
