@@ -53,7 +53,7 @@ def ask_general(prompt: str) -> str | None:
             return msg.content[0].text.value
     return None
 
-# --- RULE LOOKUP FUNCTION (via prompt & vector) ---
+# --- RULE LOOKUP FUNCTION WITH FALLBACK ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
@@ -66,11 +66,16 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             max_output_tokens=2048,
             store=False
         )
-        return res.output[0].text.value  # ✅ Correct for list-based response
+
+        # Safely scan outputs for a generated assistant reply
+        for out in res.output:
+            if hasattr(out, "text") and hasattr(out.text, "value"):
+                return out.text.value
+
+        return f"⚠️ No written response was generated for rule `{rule_id}`. Please ensure this rule exists or update your prompt to instruct the assistant to respond with text."
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
-
 
 # --- UI SECTION HANDLERS ---
 def render_general_section():
@@ -96,10 +101,11 @@ def render_rule_section():
         st.session_state.last_rule_id = rule_input.strip()
 
     if st.session_state.last_rule_id:
-        reply = ask_rule_lookup(st.session_state.last_rule_id)
+        rule_id = st.session_state.last_rule_id
+        reply = ask_rule_lookup(rule_id)
         st.session_state.last_rule_id = ""
         st.markdown("### 🔍 Rule Lookup Result")
-        st.markdown(reply or f"Rule ID not found.")
+        st.markdown(reply or f"Rule ID `{rule_id}` not found.")
 
 # --- MAIN ---
 render_general_section()
