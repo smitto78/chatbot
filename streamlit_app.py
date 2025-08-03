@@ -16,13 +16,14 @@ st.caption("Ask a question or look up a rule. Built for players, coaches, and of
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         response = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "15"},  # ← use your real prompt version
+            prompt={"id": RULE_PROMPT_ID, "version": "15"},
             input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
             tools=[{"type": "file_search", "vector_store_ids": [VS_VECTOR_STORE_ID]}],
             max_output_tokens=2048,
-            store=True
+            store=True  # Debugging enabled
         )
 
+        # Display full raw output for debugging
         for item in response.output:
             if hasattr(item, "text") and hasattr(item.text, "value"):
                 return item.text.value
