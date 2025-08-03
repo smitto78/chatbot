@@ -67,4 +67,3 @@ st.caption("Look up rules by ID or ask scenario-based questions to prepare for g
 
 render_general_section()
 st.markdown("---")
-render_rule_section()
