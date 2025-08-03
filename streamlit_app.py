@@ -23,7 +23,7 @@ for k, default in default_keys.items():
     st.session_state.setdefault(k, default)
 
 # --- ASK FUNCTION ---
-def ask_assistant(prompt: str, prompt_id: str = None) -> str | None:
+def ask_assistant(prompt: str, use_rule_prompt: bool = False) -> str | None:
     if not st.session_state.thread_id:
         thread = client.beta.threads.create()
         st.session_state.thread_id = thread.id
@@ -34,14 +34,16 @@ def ask_assistant(prompt: str, prompt_id: str = None) -> str | None:
         content=prompt
     )
 
-    run_args = {
-        "thread_id": st.session_state.thread_id,
-        "assistant_id": ASSISTANT_ID,
-    }
-    if prompt_id:
-        run_args["additional_instructions"] = {"prompt_id": prompt_id}
-
-    run = client.beta.threads.runs.create(**run_args)
+    run = client.beta.threads.runs.create(
+        thread_id=st.session_state.thread_id,
+        assistant_id=ASSISTANT_ID,
+        instructions=(
+            "You are an NFHS football rules expert. Use the uploaded 2025 rulebook. "
+            "If the message is a rule ID like '3-4-4j', search the file for an exact metadata match in the `id` field. "
+            "If found, return the full rule text. If not, say it wasn't found. "
+            "Always cite the rule and include a short summary with bullet points if possible."
+        ) if use_rule_prompt else None
+    )
 
     with st.spinner("Assistant is reviewing the rules..."):
         while True:
@@ -61,6 +63,7 @@ def ask_assistant(prompt: str, prompt_id: str = None) -> str | None:
         if msg.role == "assistant" and msg.run_id == run.id:
             return msg.content[0].text.value
     return None
+
 
 # --- DISPLAY OUTPUT ---
 def display_reply(reply: str):
@@ -97,7 +100,7 @@ def render_rule_section():
 
     if st.session_state.last_rule_id:
         rule_prompt = st.session_state.last_rule_id
-        reply = ask_assistant(rule_prompt, prompt_id=RULE_PROMPT_ID)
+        reply = ask_assistant(rule_prompt, use_rule_prompt=True)
         st.session_state.last_rule_id = ""
         display_reply(reply)
 
