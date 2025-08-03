@@ -56,14 +56,14 @@ def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
             prompt={"id": RULE_PROMPT_ID, "version": "4"},
-            input=[{"user_message": rule_id}],
+            input=[{"role": "user", "content": rule_id}],
             text={"format": {"type": "text"}},
             reasoning={},
             tools=[{"type": "file_search", "vector_store_ids": [VS_VECTOR_STORE_ID]}],
             max_output_tokens=2048,
             store=False
         )
-        return res["text"] if "text" in res else None
+        return res.text if hasattr(res, "text") else None
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
