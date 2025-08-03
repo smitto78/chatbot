@@ -1,6 +1,6 @@
 import time
 import streamlit as st
-from openai import OpenAI, trace
+from openai import OpenAI
 
 # --- CONFIG ---
 RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
@@ -42,41 +42,40 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
 
-# --- GENERAL OPEN-ENDED QUESTION FUNCTION (with tracing) ---
+# --- GENERAL OPEN-ENDED QUESTION FUNCTION ---
 def ask_general(prompt: str) -> str | None:
     if not st.session_state.thread_id:
         thread = client.beta.threads.create()
         st.session_state.thread_id = thread.id
 
-    with trace.OpenAITelemetryTrace(name="nfhs-general-qna"):
-        client.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
-            role="user",
-            content=prompt
-        )
+    client.beta.threads.messages.create(
+        thread_id=st.session_state.thread_id,
+        role="user",
+        content=prompt
+    )
 
-        run = client.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id,
-            assistant_id=ASSISTANT_ID
-        )
+    run = client.beta.threads.runs.create(
+        thread_id=st.session_state.thread_id,
+        assistant_id=ASSISTANT_ID
+    )
 
-        with st.spinner("Assistant is thinking..."):
-            while True:
-                status = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id,
-                    run_id=run.id
-                ).status
-                if status == "completed":
-                    break
-                if status == "failed":
-                    st.error("❌ Assistant run failed.")
-                    return None
-                time.sleep(1)
+    with st.spinner("Assistant is thinking..."):
+        while True:
+            status = client.beta.threads.runs.retrieve(
+                thread_id=st.session_state.thread_id,
+                run_id=run.id
+            ).status
+            if status == "completed":
+                break
+            if status == "failed":
+                st.error("❌ Assistant run failed.")
+                return None
+            time.sleep(1)
 
-        msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-        for msg in reversed(msgs):
-            if msg.role == "assistant" and msg.run_id == run.id:
-                return msg.content[0].text.value
+    msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+    for msg in reversed(msgs):
+        if msg.role == "assistant" and msg.run_id == run.id:
+            return msg.content[0].text.value
     return None
 
 # --- RULE LOOKUP UI ---
@@ -91,7 +90,7 @@ def render_rule_section():
         else:
             st.warning("Please enter a rule ID to look up.")
 
-# --- GENERAL Q&A UI ---
+# --- GENERAL OPEN-ENDED Q&A UI ---
 def render_general_section():
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
     prompt = st.text_area("Enter a question or test-style scenario:",
