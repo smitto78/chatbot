@@ -21,18 +21,16 @@ def ask_general(prompt: str) -> str | None:
         return None
 
 def render_general_section():
-    # Ensure all session keys exist
-    for key in (
-        "qa_prompt_input", "qa_thread_id", "qa_last_prompt", "qa_last_reply",
-        "rule_lookup_input", "rule_lookup_result"
-    ):
-        if key not in st.session_state:
-            st.session_state[key] = ""
+    # Ensure only QA-related session keys are initialized here
+    for key in ("qa_prompt_input", "qa_thread_id", "qa_last_prompt", "qa_last_reply"):
+        st.session_state.setdefault(key, "")
 
-    # Clear rule lookup state if QA is engaged
+    # Only clear rule lookup keys if they exist
     if st.session_state["qa_prompt_input"]:
-        st.session_state["rule_lookup_input"] = ""
-        st.session_state["rule_lookup_result"] = ""
+        if "rule_lookup_input" in st.session_state:
+            st.session_state["rule_lookup_input"] = ""
+        if "rule_lookup_result" in st.session_state:
+            st.session_state["rule_lookup_result"] = ""
 
     # UI
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
