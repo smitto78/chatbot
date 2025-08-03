@@ -53,36 +53,34 @@ def ask_general(prompt: str) -> str | None:
             return msg.content[0].text.value
     return None
 
-# --- RULE LOOKUP FUNCTION WITH FALLBACK ---
+# --- RULE LOOKUP FUNCTION (No template variables) ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
             prompt={"id": RULE_PROMPT_ID, "version": "8"},
-            variables={"rule_id": rule_id},  # ✅ Template variable match
+            input=[{"role": "user", "content": rule_id}],  # Rule ID passed directly
             tools=[{
                 "type": "file_search",
                 "vector_store_ids": [VS_VECTOR_STORE_ID]
             }],
             max_output_tokens=2048,
-            store=True
+            store=False
         )
 
-        # Try structured `output` (if available)
+        # Try structured output
         if hasattr(res, "output"):
             for out in res.output:
                 if hasattr(out, "text") and hasattr(out.text, "value"):
                     return out.text.value
 
-        # Fallback: Try unified response structure
+        # Fallback unified format
         if hasattr(res, "response") and hasattr(res.response, "text") and hasattr(res.response.text, "value"):
             return res.response.text.value
 
-        return f"⚠️ No written response was generated for rule `{rule_id}`."
+        return f"⚠️ No written response generated for rule `{rule_id}`."
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
-
-
 
 # --- UI SECTION HANDLERS ---
 def render_general_section():
