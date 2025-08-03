@@ -16,6 +16,7 @@ st.caption("Ask a question or look up a rule. Built for players, coaches, and of
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         response = client.chat.completions.create(
+            model="gpt-4o",  # ✅ REQUIRED
             messages=[
                 {
                     "role": "system",
@@ -45,12 +46,12 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             max_tokens=1024
         )
 
-        # Return assistant response
         return response.choices[0].message.content.strip()
 
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
+
 
 # --- RULE LOOKUP UI ---
 def render_rule_section():
