@@ -91,13 +91,15 @@ def render_rule_section() -> None:
     """
     st.markdown("## 🔍 Look Up a Rule by ID")
     rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
+    look_up_clicked = st.button("Look Up", key="rule_button")
 
-    if st.button("Look Up") and rule_input.strip():
-        result = ask_rule_lookup(rule_input.strip())
-        st.markdown("### 📘 Rule Lookup Result")
-        st.markdown(result or f"⚠️ No result returned for rule `{rule_input}`.")
-    elif st.button("Look Up"):
-        st.warning("Please enter a rule ID to look up.")
+    if look_up_clicked:
+        if rule_input.strip():
+            result = ask_rule_lookup(rule_input.strip())
+            st.markdown("### 📘 Rule Lookup Result")
+            st.markdown(result or f"⚠️ No result returned for rule `{rule_input}`.")
+        else:
+            st.warning("Please enter a rule ID to look up.")
 
 def render_general_section() -> None:
     """
