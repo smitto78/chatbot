@@ -56,7 +56,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
             prompt={"id": RULE_PROMPT_ID, "version": "4"},
-            input=[{"role": "user", "content": rule_id}],
+            input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
             text={"format": {"type": "text"}},
             reasoning={},
             tools=[{"type": "file_search", "vector_store_ids": [VS_VECTOR_STORE_ID]}],
