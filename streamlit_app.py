@@ -36,8 +36,10 @@ def ask_general(prompt: str) -> str | None:
 
     with st.spinner("Assistant is reviewing..."):
         while True:
-            status = client.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id,
-                                                       run_id=run.id).status
+            status = client.beta.threads.runs.retrieve(
+                thread_id=st.session_state.thread_id,
+                run_id=run.id
+            ).status
             if status == "completed":
                 break
             if status == "failed":
@@ -51,33 +53,23 @@ def ask_general(prompt: str) -> str | None:
             return msg.content[0].text.value
     return None
 
-# --- RULE LOOKUP VIA responses.create() USING PRECONFIGURED PROMPT & VECTOR STORE ---
+# --- RULE LOOKUP FUNCTION (via prompt & vector) ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
-            prompt={
-                "id": RULE_PROMPT_ID,
-                "version": "6"
-            },
-            variables={
-                "rule_id": rule_id
-            },
-            text={"format": {"type": "text"}},
-            reasoning={},
-            tools=[
-                {
-                    "type": "file_search",
-                    "vector_store_ids": [VS_VECTOR_STORE_ID]
-                }
-            ],
+            prompt={"id": RULE_PROMPT_ID, "version": "6"},
+            input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
+            tools=[{
+                "type": "file_search",
+                "vector_store_ids": [VS_VECTOR_STORE_ID]
+            }],
             max_output_tokens=2048,
             store=False
         )
-        return res.text if hasattr(res, "text") else None
+        return getattr(res, "text", None)
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
-
 
 # --- UI SECTION HANDLERS ---
 def render_general_section():
@@ -106,7 +98,7 @@ def render_rule_section():
         reply = ask_rule_lookup(st.session_state.last_rule_id)
         st.session_state.last_rule_id = ""
         st.markdown("### 🔍 Rule Lookup Result")
-        st.markdown(reply or f"Rule ID {rule_input} not found.")
+        st.markdown(reply or f"Rule ID not found.")
 
 # --- MAIN ---
 render_general_section()
