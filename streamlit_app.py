@@ -1,7 +1,10 @@
 import time
+import asyncio
 import streamlit as st
 from openai import OpenAI
 from typing import Optional
+from agents import Agent, Runner
+from agents.tracing import trace  # Tracing only for QA
 
 # --- CONFIGURATION ---
 CONFIG = {
@@ -20,10 +23,8 @@ st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 for key in ("thread_id", "last_general_prompt", "last_general_reply", "last_rule_id"):
     st.session_state.setdefault(key, "")
 
+# --- RULE LOOKUP FUNCTION (unchanged) ---
 def ask_rule_lookup(rule_id: str) -> Optional[str]:
-    """
-    Looks up a rule by ID using a vector search prompt.
-    """
     try:
         response = client.responses.create(
             prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "29"},
@@ -47,48 +48,26 @@ def ask_rule_lookup(rule_id: str) -> Optional[str]:
         st.error(f"❌ Rule lookup failed: {exc}")
         return None
 
+# --- GENERAL Q&A WITH TRACING ENABLED ---
+async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
+    agent = Agent(
+        name="Rules QA Assistant",
+        instructions="Answer questions about NFHS Football rules based on context."
+    )
+    async with trace(workflow_name="NFHS_QA", group_id=group_id or None):
+        result = await Runner.run(agent, prompt)
+    return result.final_output
+
 def ask_general(prompt: str) -> Optional[str]:
-    """
-    Submits a general prompt to the assistant and retrieves a response.
-    """
-    if not st.session_state.thread_id:
-        thread = client.beta.threads.create()
-        st.session_state.thread_id = thread.id
+    try:
+        group_id = st.session_state.thread_id or "default-thread"
+        return asyncio.run(_qa_agent_call(prompt, group_id))
+    except Exception as e:
+        st.error(f"❌ QA lookup failed: {e}")
+        return None
 
-    client.beta.threads.messages.create(
-        thread_id=st.session_state.thread_id,
-        role="user",
-        content=prompt
-    )
-
-    run = client.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
-        assistant_id=CONFIG["ASSISTANT_ID"]
-    )
-
-    with st.spinner("Assistant is thinking..."):
-        while True:
-            status = client.beta.threads.runs.retrieve(
-                thread_id=st.session_state.thread_id,
-                run_id=run.id
-            ).status
-            if status == "completed":
-                break
-            if status == "failed":
-                st.error("❌ Assistant run failed.")
-                return None
-            time.sleep(0.5)
-
-    messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-    for message in reversed(messages):
-        if message.role == "assistant" and message.run_id == run.id:
-            return message.content[0].text.value
-    return None
-
+# --- UI RENDER FUNCTIONS ---
 def render_rule_section() -> None:
-    """
-    Displays the rule lookup section of the UI.
-    """
     st.markdown("## 🔍 Look Up a Rule by ID")
     rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
     look_up_clicked = st.button("Look Up", key="rule_button")
@@ -102,14 +81,11 @@ def render_rule_section() -> None:
             st.warning("Please enter a rule ID to look up.")
 
 def render_general_section() -> None:
-    """
-    Displays the general Q&A section of the UI.
-    """
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
     prompt = st.text_area("Enter a question or test-style scenario:",
                           placeholder="e.g., Can Team A recover their own punt after a muff?",
                           key="general_prompt")
-    if st.button("Ask"):
+    if st.button("Ask", key="ask_button"):
         st.session_state.last_general_prompt = prompt.strip()
 
     if st.session_state.last_general_prompt:
@@ -119,9 +95,6 @@ def render_general_section() -> None:
         st.markdown(reply or "⚠️ No response received.")
 
 def main() -> None:
-    """
-    Main UI rendering function.
-    """
     render_general_section()
     st.markdown("---")
     render_rule_section()
