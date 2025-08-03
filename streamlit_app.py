@@ -16,7 +16,6 @@ st.caption("Ask a question or look up a rule. Built for players, coaches, and of
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
             messages=[
                 {
                     "role": "system",
@@ -43,8 +42,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
                 }
             ],
             tool_choice="auto",
-            max_tokens=1024,
-            temperature=0.2,
+            max_tokens=1024
         )
 
         # Return assistant response
