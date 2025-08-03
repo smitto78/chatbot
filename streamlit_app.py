@@ -66,7 +66,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             max_output_tokens=2048,
             store=False
         )
-        return getattr(res, "text", None)
+        return res.output.text.value  # ✅ Correct way to access the output
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
