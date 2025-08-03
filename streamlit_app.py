@@ -29,7 +29,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             }],
             text={"format": {"type": "text"}},
             max_output_tokens=2048,
-            store=False
+            store=true
         )
 
         # Scan the output for assistant-generated response
