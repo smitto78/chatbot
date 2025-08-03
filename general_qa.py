@@ -9,7 +9,7 @@ async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
         instructions="Only answer questions if grounded in NFHS rules. Say 'I don't know' if unsure."
     )
     with trace(workflow_name="NFHS_QA", group_id=group_id or None):
-        result = await Runner.run(agent, prompt, temperature=0.0, top_p=0.1)
+        result = await Runner.run(agent, prompt)
     return result.final_output
 
 def ask_general(prompt: str) -> str | None:
