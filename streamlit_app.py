@@ -2,12 +2,14 @@ import time
 import streamlit as st
 from openai import OpenAI
 
-# Optional tracing setup
+# Optional: LangSmith tracing integration
 try:
-    from opentelemetry.instrumentation.openai_v2 import OpenAIInstrumentor
-    OpenAIInstrumentor().instrument()
+    from langsmith.wrappers import OpenAIAgentsTracingProcessor
+    from agents import Runner, Agent, trace, set_trace_processors
+    set_trace_processors([OpenAIAgentsTracingProcessor()])
+    tracing_enabled = True
 except ImportError:
-    st.warning("⚠️ Tracing not active — run `pip install opentelemetry-instrumentation-openai-v2` to enable it.")
+    tracing_enabled = False
 
 # --- CONFIG ---
 RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
@@ -43,18 +45,25 @@ def ask_rule_lookup(rule_id: str) -> str | None:
                     if hasattr(block, "text"):
                         return block.text.strip()
 
-        return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure it exists or improve your prompt."
+        return f"⚠️ No written response for rule `{rule_id}`."
 
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
 
-# --- GENERAL Q&A FUNCTION (Tracing handled via instrumentation) ---
+# --- GENERAL OPEN-ENDED QUESTION FUNCTION (with optional tracing) ---
 def ask_general(prompt: str) -> str | None:
     if not st.session_state.thread_id:
         thread = client.beta.threads.create()
         st.session_state.thread_id = thread.id
 
+    if tracing_enabled:
+        with trace(workflow_name="NFHS General Q&A", group_id=prompt):
+            return run_assistant(prompt)
+    else:
+        return run_assistant(prompt)
+
+def run_assistant(prompt: str) -> str | None:
     client.beta.threads.messages.create(
         thread_id=st.session_state.thread_id,
         role="user",
@@ -90,19 +99,17 @@ def render_rule_section():
     st.markdown("## 🔍 Look Up a Rule by ID")
     rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
     if st.button("Look Up"):
-        if rule_input.strip():
-            result = ask_rule_lookup(rule_input.strip())
-            st.markdown("### 📘 Rule Lookup Result")
-            st.markdown(result or f"⚠️ No result returned for rule `{rule_input}`.")
-        else:
-            st.warning("Please enter a rule ID to look up.")
+        st.session_state.last_rule_id = rule_input.strip()
+
+    if st.session_state.last_rule_id:
+        result = ask_rule_lookup(st.session_state.last_rule_id)
+        st.markdown("### 📘 Rule Lookup Result")
+        st.markdown(result or f"⚠️ No result returned for rule `{st.session_state.last_rule_id}`.")
 
 # --- GENERAL Q&A UI ---
 def render_general_section():
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
-    prompt = st.text_area("Enter a question or test-style scenario:",
-                          placeholder="e.g., Can Team A recover their own punt after a muff?",
-                          key="general_prompt")
+    prompt = st.text_area("Enter a question or test-style scenario:", key="general_prompt")
     if st.button("Ask"):
         st.session_state.last_general_prompt = prompt.strip()
 
