@@ -77,20 +77,33 @@ def ask_general(prompt: str) -> str | None:
 
 # --- RULE LOOKUP UI ---
 def render_rule_section():
+    # Clear general Q&A state if rule input is used
+    if st.session_state.get("rule_input"):
+        for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
+            st.session_state[key] = ""
+
     st.markdown("## 🔍 Look Up a Rule by ID")
     rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
-    if st.button("Look Up"):
+    if st.button("Look Up", key="rule_button"):
         if rule_input.strip():
             result = ask_rule_lookup(rule_input.strip())
-            st.markdown("### 📘 Rule Lookup Result")
-            st.markdown(result or f"⚠️ No result returned for rule `{rule_input}`.")
+            st.session_state.rule_result = result
         else:
             st.warning("Please enter a rule ID to look up.")
+
+    if st.session_state.get("rule_result"):
+        st.markdown("### 📘 Rule Lookup Result")
+        st.markdown(st.session_state.rule_result or "⚠️ No response.")
 
 # --- GENERAL Q&A UI ---
 def render_general_section() -> None:
     for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
         st.session_state.setdefault(key, "")
+
+    # Clear rule lookup state if general prompt is used
+    if st.session_state.get("qa_prompt"):
+        st.session_state["rule_input"] = ""
+        st.session_state["rule_result"] = ""
 
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
     prompt = st.text_area("Enter a question or test-style scenario:",
