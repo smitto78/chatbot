@@ -38,7 +38,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             ],
             tools=[{
                 "type": "file_search",
-                "vector_store_ids": [CONFIG["VS_VECTOR_STORE_ID"]]
+                "vector_store_ids": [CONFIG["VECTOR_STORE_ID"]]
             }],
             text={"format": {"type": "text"}},
             max_output_tokens=2048,
