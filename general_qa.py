@@ -23,8 +23,10 @@ def ask_general(prompt: str) -> str | None:
 def render_general_section():
     for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
         st.session_state.setdefault(key, "")
-    if st.session_state.get("qa_prompt"):
+    f st.session_state.get("qa_prompt"):
+    if "rule_input" in st.session_state:
         st.session_state["rule_input"] = ""
+    if "rule_result" in st.session_state:
         st.session_state["rule_result"] = ""
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
     prompt = st.text_area("Enter your question:", key="qa_prompt")
