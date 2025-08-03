@@ -25,11 +25,7 @@ CONFIG = {
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 
-# --- SESSION STATE DEFAULTS ---
-for key in ("thread_id", "last_general_prompt", "last_general_reply", "last_rule_id"):
-    st.session_state.setdefault(key, "")
-
-# --- RULE LOOKUP FUNCTION (restored version) ---
+# --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
@@ -64,7 +60,7 @@ async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
 
 def ask_general(prompt: str) -> str | None:
     try:
-        group_id = st.session_state.thread_id or "default-thread"
+        group_id = st.session_state.qa_thread_id or "default-thread"
         return asyncio.run(_qa_agent_call(prompt, group_id))
     except Exception as e:
         st.error(f"❌ QA lookup failed: {e}")
@@ -72,6 +68,7 @@ def ask_general(prompt: str) -> str | None:
 
 # --- RULE LOOKUP UI ---
 def render_rule_section() -> None:
+    st.session_state.setdefault("rule_input", "")
     st.markdown("## 🔍 Look Up a Rule by ID")
     rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
     look_up_clicked = st.button("Look Up", key="rule_button")
@@ -86,22 +83,26 @@ def render_rule_section() -> None:
 
 # --- GENERAL Q&A UI ---
 def render_general_section() -> None:
+    for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
+        st.session_state.setdefault(key, "")
+
     st.markdown("## 💬 Ask a Question About Rules or Scenarios")
     prompt = st.text_area("Enter a question or test-style scenario:",
                           placeholder="e.g., Can Team A recover their own punt after a muff?",
-                          key="general_prompt")
-    if st.button("Ask", key="ask_button"):
-        st.session_state.last_general_prompt = prompt.strip()
+                          key="qa_prompt")
 
-    if st.session_state.last_general_prompt:
-        reply = ask_general(st.session_state.last_general_prompt)
-        st.session_state.last_general_reply = reply or ""
+    if st.button("Ask", key="qa_button"):
+        st.session_state.qa_last_prompt = prompt.strip()
+
+    if st.session_state.qa_last_prompt:
+        reply = ask_general(st.session_state.qa_last_prompt)
+        st.session_state.qa_last_reply = reply or ""
         st.markdown("### 🧠 Assistant Reply")
         st.markdown(reply or "⚠️ No response received.")
 
 # --- MAIN ---
 def main() -> None:
-    render_rule_section()  # Rule lookup first for consistency
+    render_rule_section()
     st.markdown("---")
     render_general_section()
 
