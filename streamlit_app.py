@@ -1,13 +1,13 @@
 import time
 import asyncio
 import streamlit as st
-from openai import OpenAI
+from openai import OpenAI, settings
 from typing import Optional
 from agents import Agent, Runner
 from agents.tracing import trace  # Tracing only for QA
-from openai import settings
-settings.api_key = st.secrets["openai"]["api_key"]
 
+# --- Set OpenAI API Key for Agents SDK ---
+settings.api_key = st.secrets["openai"]["api_key"]
 
 # --- CONFIGURATION ---
 CONFIG = {
