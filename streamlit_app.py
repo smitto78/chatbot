@@ -16,18 +16,22 @@ st.caption("Ask a question or look up a rule. Built for players, coaches, and of
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         response = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "14"},
+            prompt={"id": RULE_PROMPT_ID, "version": "11"},  # ← use your real prompt version
             input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
             tools=[{"type": "file_search", "vector_store_ids": [VS_VECTOR_STORE_ID]}],
             max_output_tokens=2048,
             store=False
         )
-        return response.choices[0].message.content.strip()
+
+        for item in response.output:
+            if hasattr(item, "text") and hasattr(item.text, "value"):
+                return item.text.value
+
+        return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure it exists or improve your prompt."
 
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
-
 
 # --- RULE LOOKUP UI ---
 def render_rule_section():
