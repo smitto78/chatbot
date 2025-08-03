@@ -32,13 +32,11 @@ def ask_assistant(prompt: str) -> str | None:
         thread_id=st.session_state.thread_id,
         role="user",
         content=prompt,
-        file_ids=[VECTOR_FILE_ID]  # ✅ Moved here
     )
 
     run = client.beta.threads.runs.create(
         thread_id=st.session_state.thread_id,
         assistant_id=ASSISTANT_ID
-        # ❌ Do NOT include file_ids here
     )
 
     with st.spinner("Assistant is reviewing the rules..."):
