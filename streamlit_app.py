@@ -64,7 +64,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
                 "vector_store_ids": [VS_VECTOR_STORE_ID]
             }],
             max_output_tokens=2048,
-            store=False
+            store=True
         )
 
         # Try structured `output` (if available)
