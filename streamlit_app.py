@@ -85,8 +85,6 @@ def render_rule_section():
             f"Rule {rule_id}: [insert exact rule text here]\n\n"
             f"Further key points often included in this rule:\n"
             f"- [Insert helpful clarifications or common rulings as bullet points]\n\n"
-            f"Step 3: If the metadata `id` is not an exact match, say:\n"
-            f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n\n"
         )
 
         reply = ask_assistant(rule_prompt)
