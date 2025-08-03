@@ -57,7 +57,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         res = client.responses.create(
             prompt={
                 "id": RULE_PROMPT_ID,
-                "version": "4"
+                "version": "6"
             },
             variables={
                 "rule_id": rule_id
