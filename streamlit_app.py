@@ -15,25 +15,38 @@ st.caption("Ask a question or look up a rule. Built for players, coaches, and of
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
-        response = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "16"},
-            input=[{"role": "user", "content": f"What does rule {rule_id} say?"}],
-            tools=[{"type": "file_search", "vector_store_ids": [VS_VECTOR_STORE_ID]}],
+        res = client.responses.create(
+            prompt={"id": RULE_PROMPT_ID, "version": "15"},
+            input=[
+                {
+                    "role": "user",
+                    "content": f"What does rule {rule_id} say?"
+                }
+            ],
+            tools=[{
+                "type": "file_search",
+                "vector_store_ids": [VS_VECTOR_STORE_ID]
+            }],
+            text={"format": {"type": "text"}},
             max_output_tokens=2048,
-            store=True  # Debugging enabled
+            store=False
         )
 
-        # Display full raw output for debugging
-        for item in getattr(response, "output", []):
-            # Ensure we handle both file_search and text outputs
-            if item.type == "text" and hasattr(item, "text") and hasattr(item.text, "value"):
-                return item.text.value
+        # Scan the output for assistant-generated response
+        for out in res.output:
+            if hasattr(out, "text") and hasattr(out.text, "value"):
+                return out.text.value.strip()
+            if hasattr(out, "content"):
+                for block in out.content:
+                    if hasattr(block, "text"):
+                        return block.text.strip()
 
         return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure it exists or improve your prompt."
 
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
+
 
 # --- RULE LOOKUP UI ---
 def render_rule_section():
