@@ -1,69 +1,119 @@
+import re
 import time
 import streamlit as st
 from openai import OpenAI
 
 # --- CONFIG ---
 ASSISTANT_ID = "asst_AAbf5acxGSYy6NpApw2oqiZg"
+RULE_PROMPT_ID = "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9"
+VECTOR_STORE_ID = "vs_688ed4dbc96081919239650f07d7046f"
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # --- SESSION STATE ---
-for key in ["thread_id", "last_general_prompt", "last_general_reply", "last_rule_id"]:
+for key in ["thread_id", "last_prompt", "last_reply", "last_rule_id", "last_rule_result"]:
     st.session_state.setdefault(key, "")
 
-# --- GENERAL OPEN-ENDED RULE Q&A ---
+# --- RULE ID DETECTION ---
+def is_rule_id(text: str) -> bool:
+    return bool(re.match(r"^\d+-\d+(?:-\d+[a-z]?)?$", text.strip()))
+
+# --- RULE LOOKUP FUNCTION ---
+def ask_rule_lookup(rule_id: str) -> str | None:
+    try:
+        res = client.responses.create(
+            prompt={"id": RULE_PROMPT_ID, "version": "32"},
+            input=[{"role": "user", "content": f"id:{rule_id}"}],
+            tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
+            text={"format": {"type": "text"}},
+            max_output_tokens=2048,
+            temperature=0.2,
+            store=True
+        )
+        for out in res.output:
+            if hasattr(out, "text") and hasattr(out.text, "value"):
+                return out.text.value.strip()
+            if hasattr(out, "content"):
+                for block in out.content:
+                    if hasattr(block, "text"):
+                        return block.text.strip()
+        return f"⚠️ No response generated for rule `{rule_id}`."
+    except Exception as e:
+        st.error(f"❌ Rule lookup failed: {e}")
+        return None
+
+# --- GENERAL Q&A FUNCTION ---
 def ask_general(prompt: str) -> str | None:
-    if not st.session_state.thread_id:
-        thread = client.beta.threads.create()
-        st.session_state.thread_id = thread.id
+    try:
+        if not st.session_state.thread_id:
+            thread = client.beta.threads.create()
+            st.session_state.thread_id = thread.id
 
-    client.beta.threads.messages.create(
-        thread_id=st.session_state.thread_id,
-        role="user",
-        content=prompt
-    )
+        client.beta.threads.messages.create(
+            thread_id=st.session_state.thread_id,
+            role="user",
+            content=prompt
+        )
 
-    run = client.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
-        assistant_id=ASSISTANT_ID
-    )
+        run = client.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id,
+            assistant_id=ASSISTANT_ID,
+            temperature=0.7
+        )
 
-    with st.spinner("Assistant is thinking..."):
-        while True:
-            status = client.beta.threads.runs.retrieve(
-                thread_id=st.session_state.thread_id,
-                run_id=run.id
-            ).status
-            if status == "completed":
-                break
-            if status == "failed":
-                st.error("❌ Assistant run failed.")
-                return None
-            time.sleep(1)
+        with st.spinner("Assistant is thinking..."):
+            while True:
+                status = client.beta.threads.runs.retrieve(
+                    thread_id=st.session_state.thread_id,
+                    run_id=run.id
+                ).status
+                if status == "completed":
+                    break
+                if status == "failed":
+                    st.error("❌ Assistant run failed.")
+                    return None
+                time.sleep(1)
 
-    msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-    for msg in reversed(msgs):
-        if msg.role == "assistant" and msg.run_id == run.id:
-            return msg.content[0].text.value
-    return None
+        msgs = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+        for msg in reversed(msgs):
+            if msg.role == "assistant" and msg.run_id == run.id:
+                return msg.content[0].text.value
+        return None
+    except Exception as e:
+        st.error(f"❌ Assistant error: {e}")
+        return None
 
-# --- UI SECTION: GENERAL RULE QUESTIONS ---
-def render_general_section():
-    st.markdown("## 💬 Ask About Rules or Case Interpretations")
-    prompt = st.text_area("Type a scenario, rule question, or case interpretation:",
-                          placeholder="e.g., Can Team A advance a muffed free kick?",
-                          key="general_prompt")
-    if st.button("Ask", key="ask_general"):
-        st.session_state.last_general_prompt = prompt.strip()
+# --- UI SECTION ---
+def render_main():
+    st.markdown("## 💬 Ask About Rules or Look Up by ID")
+    prompt = st.text_area("Type a rule ID (e.g., 8-5-3b) or scenario/question:",
+                          key="user_prompt")
 
-    if st.session_state.last_general_prompt:
-        reply = ask_general(st.session_state.last_general_prompt)
-        st.session_state.last_general_reply = reply or ""
+    if st.button("Submit", key="submit_prompt"):
+        query = prompt.strip()
+        if is_rule_id(query):
+            st.session_state.last_rule_id = query
+            st.session_state.last_rule_result = ask_rule_lookup(query)
+            st.session_state.last_prompt = ""
+            st.session_state.last_reply = ""
+        else:
+            st.session_state.last_prompt = query
+            st.session_state.last_reply = ask_general(query)
+            st.session_state.last_rule_id = ""
+            st.session_state.last_rule_result = ""
+
+    # --- Show Responses ---
+    if st.session_state.last_rule_id and st.session_state.last_rule_result:
+        st.markdown(f"### 📘 Rule Lookup: {st.session_state.last_rule_id}")
+        st.markdown(st.session_state.last_rule_result)
+
+    elif st.session_state.last_prompt and st.session_state.last_reply:
         st.markdown("### 🧠 Assistant Reply")
-        st.markdown(reply or "No response received.")
+        st.markdown(st.session_state.last_reply)
 
+# --- PAGE CONFIG ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
-st.caption("Look up rules by ID or ask scenario-based questions to prepare for game day or exams.")
+st.caption("Ask rule questions or look up by ID. Powered by OpenAI's Assistant API.")
 
-render_general_section()
-st.markdown("---")
+# --- MAIN ---
+render_main()
