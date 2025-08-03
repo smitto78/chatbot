@@ -50,15 +50,13 @@ def ask_rule_lookup(rule_id: str) -> Optional[str]:
 
 # --- GENERAL Q&A WITH TRACING ENABLED ---
 async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
-    agent = Agent(
-        name="Rules QA Assistant",
-        instructions="Answer questions about NFHS Football rules based on context."
-    )
-    async with trace(workflow_name="NFHS_QA", group_id=group_id or None):
+    agent = Agent(name="Rules QA Assistant", instructions="Answer NFHS football rules questions.")
+    # Use synchronous context manager
+    with trace(workflow_name="NFHS_QA", group_id=group_id or None):
         result = await Runner.run(agent, prompt)
     return result.final_output
 
-def ask_general(prompt: str) -> Optional[str]:
+def ask_general(prompt: str) -> str | None:
     try:
         group_id = st.session_state.thread_id or "default-thread"
         return asyncio.run(_qa_agent_call(prompt, group_id))
