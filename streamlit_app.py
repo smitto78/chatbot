@@ -10,7 +10,7 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
-st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
+#st.caption("Ask a question or look up a rule. Built for players, coaches, and officials.")
 
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
