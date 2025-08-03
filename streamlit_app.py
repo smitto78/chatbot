@@ -66,10 +66,11 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             max_output_tokens=2048,
             store=False
         )
-        return res.output.text.value  # ✅ Correct way to access the output
+        return res.output[0].text.value  # ✅ Correct for list-based response
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
+
 
 # --- UI SECTION HANDLERS ---
 def render_general_section():
