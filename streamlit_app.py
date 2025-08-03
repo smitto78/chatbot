@@ -15,15 +15,6 @@ for key in ["thread_id", "last_prompt", "last_reply", "last_rule_id", "last_rule
 def is_rule_id(text: str) -> bool:
     return bool(re.match(r"^\d+-\d+(?:-\d+[a-z]?)?$", text.strip()))
 
-# --- RULE HEADER PARSING ---
-def extract_rule_reference(text: str) -> str | None:
-    match = re.search(r"Rule Reference: (.+)", text)
-    return match.group(1).strip() if match else None
-
-def rule_ids_match(requested: str, returned: str) -> bool:
-    """Compare rule IDs case-insensitively and strip whitespace."""
-    return requested.strip().lower() == returned.strip().lower()
-
 # --- RULE LOOKUP FUNCTION (using Assistant thread) ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
@@ -126,27 +117,14 @@ def render_main():
             st.session_state.last_rule_id = ""
             st.session_state.last_rule_result = ""
 
-# --- Show Responses ---
-if st.session_state.last_rule_id and st.session_state.last_rule_result:
-    rule_ref = extract_rule_reference(st.session_state.last_rule_result)
-    actual_rule_id = rule_ref.split(',')[0] if rule_ref else ""
-
-    if rule_ref:
-        if rule_ids_match(st.session_state.last_rule_id, actual_rule_id):
-            st.markdown(f"### 📘 Rule Lookup: {rule_ref}")
-            st.markdown(st.session_state.last_rule_result)
-        else:
-            st.warning(
-                f"❗ The assistant returned **{rule_ref}**, which does not match your input `{st.session_state.last_rule_id}`.\n"
-                "This may be a hallucinated or incorrect rule. Please recheck the rule ID or try a nearby section."
-            )
-    else:
+    # --- Show Responses ---
+    if st.session_state.last_rule_id and st.session_state.last_rule_result:
         st.markdown(f"### 📘 Rule Lookup: {st.session_state.last_rule_id}")
         st.markdown(st.session_state.last_rule_result)
 
-elif st.session_state.last_prompt and st.session_state.last_reply:
-    st.markdown("### 🧠 Assistant Reply")
-    st.markdown(st.session_state.last_reply)
+    elif st.session_state.last_prompt and st.session_state.last_reply:
+        st.markdown("### 🧠 Assistant Reply")
+        st.markdown(st.session_state.last_reply)
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant", layout="wide")
