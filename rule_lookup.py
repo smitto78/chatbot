@@ -16,7 +16,7 @@ st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "29"},
+            prompt={"id": RULE_PROMPT_ID, "version": "30"},
             input=[
                 {
                     "role": "user",
