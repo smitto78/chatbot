@@ -87,8 +87,6 @@ def render_rule_section():
             f"- [Insert helpful clarifications or common rulings as bullet points]\n\n"
             f"Step 3: If the metadata `id` is not an exact match, say:\n"
             f"\"Rule {rule_id} was not found in the 2025 NFHS Rulebook.\"\n\n"
-            f"Do not guess or summarize similar rules. Only respond if the metadata.id exactly matches \"{rule_id}\".\n"
-            f"Also output the metadata.id of the matched rule for debug."
         )
 
         reply = ask_assistant(rule_prompt)
