@@ -16,7 +16,7 @@ st.caption("Ask a question or look up a rule. Built for players, coaches, and of
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
         res = client.responses.create(
-            prompt={"id": RULE_PROMPT_ID, "version": "21"},
+            prompt={"id": RULE_PROMPT_ID, "version": "22"},
             input=[
                 {
                     "role": "user",
