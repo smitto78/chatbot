@@ -17,7 +17,7 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 # --- CONFIGURATION ---
 CONFIG = {
     "RULE_PROMPT_ID": "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9",
-    "VECTOR_STORE_ID": "vs_688ed4dbc96081919239650f07d7046f",
+    "VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",
     "ASSISTANT_ID": "asst_AAbf5acxGSYy6NpApw2oqiZg"
 }
 
