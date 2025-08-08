@@ -89,7 +89,7 @@ def render_rule_section():
             result = ask_rule_lookup(rule_input.strip())
             st.session_state.rule_result = result
         else:
-            st.warning("Please enter a rule ID to look up.")
+            st.warning("Please enter a rule ID to look up or Enter a question or scenario.")
 
     if st.session_state.get("rule_result"):
         st.markdown("### 📘 Rule Lookup Result")
@@ -122,8 +122,8 @@ def render_general_section() -> None:
 # --- MAIN ---
 def main() -> None:
     render_rule_section()
-    st.markdown("---")
-    render_general_section()
+#    st.markdown("---")
+#    render_general_section()
 
 if __name__ == "__main__":
     main()
