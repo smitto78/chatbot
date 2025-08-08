@@ -82,7 +82,7 @@ def render_rule_section():
         for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
             st.session_state[key] = ""
 
-    st.markdown("## 🔍 Look Up a Rule by ID (eg. 8-5-3d) or Enter a question or scenario.")
+    st.markdown("## 🔍 Search by Rule ID (e.g., 8-5-3d) or type a question/scenario")
     rule_input = st.text_input("Please your search here", key="rule_input")
     if st.button("Look Up", key="rule_button"):
         if rule_input.strip():
