@@ -83,7 +83,7 @@ def render_rule_section():
             st.session_state[key] = ""
 
     st.markdown("## 🔍 Look Up a Rule by ID")
-    rule_input = st.text_input("Enter Rule ID (e.g., 3-4-3d):", key="rule_input")
+    rule_input = st.text_input("Please enter a rule ID to look up or Enter a question or scenario.):", key="rule_input")
     if st.button("Look Up", key="rule_button"):
         if rule_input.strip():
             result = ask_rule_lookup(rule_input.strip())
