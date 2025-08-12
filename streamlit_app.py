@@ -24,7 +24,6 @@ CONFIG = {
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant – 2025 Edition", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
-st.title("© 2025 Tommy Smith. All Rights Reserved")
 
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
@@ -123,8 +122,33 @@ def render_general_section() -> None:
 # --- MAIN ---
 def main() -> None:
     render_rule_section()
-#    st.markdown("---")
-#    render_general_section()
+    # Uncomment below if you want Q&A active
+    # st.markdown("---")
+    # render_general_section()
 
 if __name__ == "__main__":
     main()
+
+# --- FOOTER ---
+st.markdown(
+    """
+    <style>
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: transparent;
+        color: gray;
+        text-align: center;
+        font-size: 12px;
+        padding: 5px;
+    }
+    </style>
+    <div class="footer">
+        NFHS Football Rules Assistant – 2025 Edition<br>
+        © 2025 Tommy Smith. All Rights Reserved.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
