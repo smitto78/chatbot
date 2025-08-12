@@ -23,7 +23,9 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 # --- CONFIGURATION ---
 CONFIG = {
     "RULE_PROMPT_ID": "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9",
-    "VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",
+    # Separate vector stores
+    "RULE_VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",  # existing rules store
+    "CASEBOOK_VECTOR_STORE_ID": "vs_CASEBOOK_REPLACE_ME",             # <-- replace with your case book store ID
     "ASSISTANT_ID": "asst_AAbf5acxGSYy6NpApw2oqiZg"
 }
 
@@ -64,8 +66,12 @@ def render_output_with_watermark(content: str) -> None:
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
+        # Build the list of vector stores, skipping any empty placeholders
+        vector_ids = [CONFIG.get("RULE_VECTOR_STORE_ID"), CONFIG.get("CASEBOOK_VECTOR_STORE_ID")]
+        vector_ids = [v for v in vector_ids if v and isinstance(v, str) and v.strip()]
+
         res = client.responses.create(
-            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "38"},
+            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "39"},
             input=[
                 {
                     "role": "user",
@@ -74,7 +80,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             ],
             tools=[{
                 "type": "file_search",
-                "vector_store_ids": [CONFIG["VECTOR_STORE_ID"]]
+                "vector_store_ids": vector_ids
             }],
             text={"format": {"type": "text"}},
             max_output_tokens=2048,
