@@ -71,7 +71,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         vector_ids = [v for v in vector_ids if v and isinstance(v, str) and v.strip()]
 
         res = client.responses.create(
-            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "39"},
+            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "40"},
             input=[
                 {
                     "role": "user",
