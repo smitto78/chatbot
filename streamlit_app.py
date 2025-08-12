@@ -7,6 +7,12 @@ from typing import Optional
 from agents import Agent, Runner, set_default_openai_key
 from agents.tracing import trace
 
+
+# © 2025 Tommy Smith. All Rights Reserved.
+# NFHS Football Rules Assistant – 2025 Edition
+# Unauthorized copying, modification, distribution, or use of this software is prohibited.
+
+
 # --- ENVIRONMENT SETUP ---
 os.environ["OPENAI_TRACING_ENABLED"] = "true"
 
@@ -24,6 +30,36 @@ CONFIG = {
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant – 2025 Edition", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
+
+# --- HIDDEN DIGITAL WATERMARK (C, once) ---
+st.markdown(
+    """
+    <style>
+      /* Keep it in the DOM but off-screen; still copyable/detectable */
+      .visually-hidden-watermark {
+        position: absolute;
+        left: -10000px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+    </style>
+    <div class="visually-hidden-watermark">
+      © 2025 Tommy Smith — NFHS Football Rules Assistant. Proprietary content and methods.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- WATERMARK (B, per-output helper) ---
+def render_output_with_watermark(content: str) -> None:
+    # Render the content (markdown/html) then add a subtle copyright line
+    st.markdown(content, unsafe_allow_html=True)
+    st.markdown(
+        "<div style='margin-top:8px'><sub>© 2025 Tommy Smith — NFHS Football Rules Assistant</sub></div>",
+        unsafe_allow_html=True
+    )
 
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
@@ -93,7 +129,8 @@ def render_rule_section():
 
     if st.session_state.get("rule_result"):
         st.markdown("### 📘 Rule Lookup Result")
-        st.markdown(st.session_state.rule_result or "⚠️ No response.")
+        # Use per-output watermark (B)
+        render_output_with_watermark(st.session_state.rule_result or "⚠️ No response.")
 
 # --- GENERAL Q&A UI ---
 def render_general_section() -> None:
@@ -117,7 +154,8 @@ def render_general_section() -> None:
         reply = ask_general(st.session_state.qa_last_prompt)
         st.session_state.qa_last_reply = reply or ""
         st.markdown("### 🧠 Assistant Reply")
-        st.markdown(reply or "⚠️ No response received.")
+        # Use per-output watermark (B)
+        render_output_with_watermark(st.session_state.qa_last_reply or "⚠️ No response received.")
 
 # --- MAIN ---
 def main() -> None:
@@ -143,6 +181,7 @@ st.markdown(
         text-align: center;
         font-size: 12px;
         padding: 5px;
+        z-index: 9999;
     }
     </style>
     <div class="footer">
