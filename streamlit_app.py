@@ -24,6 +24,7 @@ CONFIG = {
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant – 2025 Edition", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
+st.title("© 2025 Tommy Smith. All Rights Reserved")
 
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
