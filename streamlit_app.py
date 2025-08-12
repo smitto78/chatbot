@@ -25,7 +25,7 @@ CONFIG = {
     "RULE_PROMPT_ID": "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9",
     # Separate vector stores
     "RULE_VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",  # existing rules store
-    "CASEBOOK_VECTOR_STORE_ID": "vs_CASEBOOK_REPLACE_ME",             # <-- replace with your case book store ID
+    "CASEBOOK_VECTOR_STORE_ID": "vs_689ab19b32d8819199fc14855831c24a",             # <-- replace with your case book store ID
     "ASSISTANT_ID": "asst_AAbf5acxGSYy6NpApw2oqiZg"
 }
 
