@@ -71,7 +71,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         vector_ids = [v for v in vector_ids if v and isinstance(v, str) and v.strip()]
 
         res = client.responses.create(
-            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "57"},
+            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "59"},
             input=[
                 {
                     "role": "user",
@@ -191,7 +191,7 @@ st.markdown(
     }
     </style>
     <div class="footer">
-        NFHS Football Rules Assistant – 2025 Edition<br>
+        NFHS Football Rules Assistant – 2025 Edition v1.059<br>
         © 2025 Tommy Smith. All Rights Reserved.
     </div>
     """,
