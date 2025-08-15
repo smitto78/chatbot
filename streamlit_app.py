@@ -25,8 +25,7 @@ CONFIG = {
     "RULE_PROMPT_ID": "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9",
     # Separate vector stores
     "RULE_VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",  # existing rules store
-    "CASEBOOK_VECTOR_STORE_ID": "vs_689ab19b32d8819199fc14855831c24a",             # <-- replace with your case book store ID
-    "ASSISTANT_ID": "asst_AAbf5acxGSYy6NpApw2oqiZg"
+    "CASEBOOK_VECTOR_STORE_ID": "vs_689f72f117c8819195716f04bc2ae546",             # <-- replace with your case book store ID
 }
 
 # --- PAGE SETUP ---
@@ -71,7 +70,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         vector_ids = [v for v in vector_ids if v and isinstance(v, str) and v.strip()]
 
         res = client.responses.create(
-            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "59"},
+            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "60"},
             input=[
                 {
                     "role": "user",
@@ -191,7 +190,7 @@ st.markdown(
     }
     </style>
     <div class="footer">
-        NFHS Football Rules Assistant – 2025 Edition v1.059<br>
+        NFHS Football Rules Assistant – 2025 Edition v1.060<br>
         © 2025 Tommy Smith. All Rights Reserved.
     </div>
     """,
