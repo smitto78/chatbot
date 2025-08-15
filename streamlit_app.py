@@ -25,37 +25,26 @@ CONFIG = {
     "RULE_PROMPT_ID": "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9",
     # Separate vector stores
     "RULE_VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",  # existing rules store
-    "CASEBOOK_VECTOR_STORE_ID": "vs_689f72f117c8819195716f04bc2ae546",             # <-- replace with your case book store ID
+    "CASEBOOK_VECTOR_STORE_ID": "vs_689f72f117c8819195716f04bc2ae546",  # case book store
 }
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant – 2025 Edition", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 
-
-# --- HIDDEN DIGITAL WATERMARK (C, once) ---
-st.markdown(
-    """
+# --- UNIFIED STYLES ---
+st.markdown("""
     <style>
-      /* Keep it in the DOM but off-screen; still copyable/detectable */
-      .visually-hidden-watermark {
+    /* Hidden watermark */
+    .visually-hidden-watermark {
         position: absolute;
         left: -10000px;
         top: auto;
         width: 1px;
         height: 1px;
         overflow: hidden;
-      }
-    </style>
-    <div class="visually-hidden-watermark">
-      © 2025 Tommy Smith — NFHS Football Rules Assistant. Proprietary content and methods.
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-# NEW: make text box stand out in light/dark mode
-st.markdown("""
-    <style>
+    }
+
     /* Make text inputs stand out in both light and dark mode */
     .stTextInput > div > div > input,
     .stTextArea > div > textarea {
@@ -80,37 +69,37 @@ st.markdown("""
             background-color: #1f1f1f;
         }
     }
-    </style>
-""", unsafe_allow_html=True)
 
-# Shrink page title (h1) and section title styles
-st.markdown("""
-    <style>
-    /* Shrink main page title (h1) */
+    /* Heading size adjustments */
     h1 {
-        font-size: 1.6rem !important;  /* default is ~2rem */
+        font-size: 1.6rem !important;
         margin-bottom: 0.5rem;
     }
-
-    /* Optionally shrink h2 (section headings) too */
     h2 {
         font-size: 1.2rem !important;
         margin-top: 0.8rem;
         margin-bottom: 0.4rem;
     }
+    h3 {
+        font-size: 1rem !important;
+        margin-top: 0.6rem;
+        margin-bottom: 0.3rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-/* Shrink all H3 headings */
-h3 {
-    font-size: 1rem !important;
-    margin-top: 0.6rem;
-    margin-bottom: 0.3rem;
-}
+# --- HIDDEN DIGITAL WATERMARK (C, once) ---
+st.markdown(
+    """
+    <div class="visually-hidden-watermark">
+      © 2025 Tommy Smith — NFHS Football Rules Assistant. Proprietary content and methods.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- WATERMARK (B, per-output helper) ---
 def render_output_with_watermark(content: str) -> None:
-    # Render the content (markdown/html) then add a subtle copyright line
     st.markdown(content, unsafe_allow_html=True)
     st.markdown(
         "<div style='margin-top:8px'><sub>© 2025 Tommy Smith — NFHS Football Rules Assistant</sub></div>",
@@ -120,28 +109,18 @@ def render_output_with_watermark(content: str) -> None:
 # --- RULE LOOKUP FUNCTION ---
 def ask_rule_lookup(rule_id: str) -> str | None:
     try:
-        # Build the list of vector stores, skipping any empty placeholders
         vector_ids = [CONFIG.get("RULE_VECTOR_STORE_ID"), CONFIG.get("CASEBOOK_VECTOR_STORE_ID")]
         vector_ids = [v for v in vector_ids if v and isinstance(v, str) and v.strip()]
 
         res = client.responses.create(
             prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "60"},
-            input=[
-                {
-                    "role": "user",
-                    "content": f"id:{rule_id}"
-                }
-            ],
-            tools=[{
-                "type": "file_search",
-                "vector_store_ids": vector_ids
-            }],
+            input=[{"role": "user", "content": f"id:{rule_id}"}],
+            tools=[{"type": "file_search", "vector_store_ids": vector_ids}],
             text={"format": {"type": "text"}},
             max_output_tokens=2048,
             store=True
         )
 
-        # Scan the output for assistant-generated response
         for out in res.output:
             if hasattr(out, "text") and hasattr(out.text, "value"):
                 return out.text.value.strip()
@@ -150,7 +129,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
                     if hasattr(block, "text"):
                         return block.text.strip()
 
-        return f"⚠️ No written response was generated for rule `{rule_id}`. Ensure it exists or improve your prompt."
+        return f"⚠️ No written response was generated for rule `{rule_id}`."
 
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
@@ -173,7 +152,6 @@ def ask_general(prompt: str) -> str | None:
 
 # --- RULE LOOKUP UI ---
 def render_rule_section():
-    # Clear general Q&A state if rule input is used
     if st.session_state.get("rule_input"):
         for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
             st.session_state[key] = ""
@@ -185,11 +163,10 @@ def render_rule_section():
             result = ask_rule_lookup(rule_input.strip())
             st.session_state.rule_result = result
         else:
-            st.warning("Please enter a rule ID to look up or Enter a question or scenario.")
+            st.warning("Please enter a rule ID to look up or enter a question or scenario.")
 
     if st.session_state.get("rule_result"):
         st.markdown("### 📘 Rule Lookup Result")
-        # Use per-output watermark (B)
         render_output_with_watermark(st.session_state.rule_result or "⚠️ No response.")
 
 # --- GENERAL Q&A UI ---
@@ -197,15 +174,16 @@ def render_general_section() -> None:
     for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
         st.session_state.setdefault(key, "")
 
-    # Clear rule lookup state if general prompt is used
     if st.session_state.get("qa_prompt"):
         st.session_state["rule_input"] = ""
         st.session_state["rule_result"] = ""
 
-    st.markdown("### 💬 Ask a Question About Rules or Scenarios")
-    prompt = st.text_area("Enter a question or test-style scenario:",
-                          placeholder="e.g., Can Team A recover their own punt after a muff?",
-                          key="qa_prompt")
+    st.markdown("## 💬 Ask a Question About Rules or Scenarios")
+    prompt = st.text_area(
+        "Enter a question or test-style scenario:",
+        placeholder="e.g., Can Team A recover their own punt after a muff?",
+        key="qa_prompt"
+    )
 
     if st.button("Ask", key="qa_button"):
         st.session_state.qa_last_prompt = prompt.strip()
@@ -214,7 +192,6 @@ def render_general_section() -> None:
         reply = ask_general(st.session_state.qa_last_prompt)
         st.session_state.qa_last_reply = reply or ""
         st.markdown("### 🧠 Assistant Reply")
-        # Use per-output watermark (B)
         render_output_with_watermark(st.session_state.qa_last_reply or "⚠️ No response received.")
 
 # --- MAIN ---
