@@ -112,17 +112,30 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         # --- LOG TOKEN USAGE FOR CACHING ---
         if hasattr(res, "usage"):
             usage_data = res.usage
+
             st.write("🔍 Token usage:")
             st.write(f"Input tokens: {usage_data.input_tokens}")
-            st.write(f"Cached input tokens: {usage_data.cached_input_tokens}")
-            st.write(f"Cache creation input tokens: {usage_data.cache_creation_input_tokens}")
             st.write(f"Output tokens: {usage_data.output_tokens}")
 
-            # 💲 Cost calculation for gpt-4.1-mini
-            input_cost = (usage_data.input_tokens - usage_data.cached_input_tokens) * 0.0000004
-            cached_cost = usage_data.cached_input_tokens * 0.0000001
-            output_cost = usage_data.output_tokens * 0.0000016
+            # Check nested token details
+            if hasattr(usage_data, "input_tokens_details"):
+                details = usage_data.input_tokens_details
+                st.write(f"  Cached input tokens: {getattr(details, 'cached_input_tokens', 0)}")
+                st.write(f"  Cache creation input tokens: {getattr(details, 'cache_creation_input_tokens', 0)}")
+            else:
+                st.write("  No input_tokens_details found.")
+
+            # 💲 Cost calculation for gpt-4.1-mini (adjust if using another model)
+            input_tokens = usage_data.input_tokens
+            cached_tokens = getattr(usage_data.input_tokens_details, "cached_input_tokens", 0)
+            cache_creation_tokens = getattr(usage_data.input_tokens_details, "cache_creation_input_tokens", 0)
+            output_tokens = usage_data.output_tokens
+
+            input_cost = (input_tokens - cached_tokens) * 0.0000004
+            cached_cost = cached_tokens * 0.0000001
+            output_cost = output_tokens * 0.0000016
             total_cost = input_cost + cached_cost + output_cost
+
             st.write(f"💲 Estimated cost this call: ${total_cost:.6f}")
         else:
             st.write("No usage data found in response.")
