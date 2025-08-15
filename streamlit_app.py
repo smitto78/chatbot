@@ -32,6 +32,7 @@ CONFIG = {
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant – 2025 Edition", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 
+
 # --- HIDDEN DIGITAL WATERMARK (C, once) ---
 st.markdown(
     """
@@ -52,6 +53,60 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+# NEW: make text box stand out in light/dark mode
+st.markdown("""
+    <style>
+    /* Make text inputs stand out in both light and dark mode */
+    .stTextInput > div > div > input,
+    .stTextArea > div > textarea {
+        border: 2px solid var(--primary-color);
+        border-radius: 6px;
+        padding: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    /* Light mode background tweak */
+    @media (prefers-color-scheme: light) {
+        .stTextInput > div > div > input,
+        .stTextArea > div > textarea {
+            background-color: #fefefe;
+        }
+    }
+
+    /* Dark mode background tweak */
+    @media (prefers-color-scheme: dark) {
+        .stTextInput > div > div > input,
+        .stTextArea > div > textarea {
+            background-color: #1f1f1f;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Shrink page title (h1) and section title styles
+st.markdown("""
+    <style>
+    /* Shrink main page title (h1) */
+    h1 {
+        font-size: 1.6rem !important;  /* default is ~2rem */
+        margin-bottom: 0.5rem;
+    }
+
+    /* Optionally shrink h2 (section headings) too */
+    h2 {
+        font-size: 1.2rem !important;
+        margin-top: 0.8rem;
+        margin-bottom: 0.4rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+/* Shrink all H3 headings */
+h3 {
+    font-size: 1rem !important;
+    margin-top: 0.6rem;
+    margin-bottom: 0.3rem;
+}
 
 # --- WATERMARK (B, per-output helper) ---
 def render_output_with_watermark(content: str) -> None:
@@ -123,7 +178,7 @@ def render_rule_section():
         for key in ("qa_thread_id", "qa_last_prompt", "qa_last_reply"):
             st.session_state[key] = ""
 
-    st.markdown("## 🔍 Search by Rule ID (e.g., 8-5-3d) or type a question/scenario")
+    st.markdown("### 🔍 Search by Rule ID (e.g., 8-5-3d) or type a question/scenario")
     rule_input = st.text_input("Please your search here", key="rule_input")
     if st.button("Look Up", key="rule_button"):
         if rule_input.strip():
@@ -147,7 +202,7 @@ def render_general_section() -> None:
         st.session_state["rule_input"] = ""
         st.session_state["rule_result"] = ""
 
-    st.markdown("## 💬 Ask a Question About Rules or Scenarios")
+    st.markdown("### 💬 Ask a Question About Rules or Scenarios")
     prompt = st.text_area("Enter a question or test-style scenario:",
                           placeholder="e.g., Can Team A recover their own punt after a muff?",
                           key="qa_prompt")
