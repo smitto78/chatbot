@@ -7,11 +7,9 @@ from typing import Optional
 from agents import Agent, Runner, set_default_openai_key
 from agents.tracing import trace
 
-
 # © 2025 Tommy Smith. All Rights Reserved.
 # NFHS Football Rules Assistant – 2025 Edition
 # Unauthorized copying, modification, distribution, or use of this software is prohibited.
-
 
 # --- ENVIRONMENT SETUP ---
 os.environ["OPENAI_TRACING_ENABLED"] = "true"
@@ -23,9 +21,8 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 # --- CONFIGURATION ---
 CONFIG = {
     "RULE_PROMPT_ID": "pmpt_688eb6bb5d2c8195ae17efd5323009e0010626afbd178ad9",
-    # Separate vector stores
-    "RULE_VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",  # existing rules store
-    "CASEBOOK_VECTOR_STORE_ID": "vs_689f72f117c8819195716f04bc2ae546",  # case book store
+    "RULE_VECTOR_STORE_ID": "vs_689558cb487c819196565f82ed51220f",   # existing rules store
+    "CASEBOOK_VECTOR_STORE_ID": "vs_689f72f117c8819195716f04bc2ae546", # case book store
 }
 
 # --- PAGE SETUP ---
@@ -35,7 +32,6 @@ st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
 # --- UNIFIED STYLES ---
 st.markdown("""
     <style>
-    /* Hidden watermark */
     .visually-hidden-watermark {
         position: absolute;
         left: -10000px;
@@ -44,8 +40,6 @@ st.markdown("""
         height: 1px;
         overflow: hidden;
     }
-
-    /* Make text inputs stand out in both light and dark mode */
     .stTextInput > div > div > input,
     .stTextArea > div > textarea {
         border: 2px solid var(--primary-color);
@@ -53,24 +47,18 @@ st.markdown("""
         padding: 8px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
-
-    /* Light mode background tweak */
     @media (prefers-color-scheme: light) {
         .stTextInput > div > div > input,
         .stTextArea > div > textarea {
             background-color: #fefefe;
         }
     }
-
-    /* Dark mode background tweak */
     @media (prefers-color-scheme: dark) {
         .stTextInput > div > div > input,
         .stTextArea > div > textarea {
             background-color: #1f1f1f;
         }
     }
-
-    /* Heading size adjustments */
     h1 {
         font-size: 1.6rem !important;
         margin-bottom: 0.5rem;
@@ -88,7 +76,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- HIDDEN DIGITAL WATERMARK (C, once) ---
+# --- HIDDEN DIGITAL WATERMARK ---
 st.markdown(
     """
     <div class="visually-hidden-watermark">
@@ -98,7 +86,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- WATERMARK (B, per-output helper) ---
+# --- WATERMARK HELPER ---
 def render_output_with_watermark(content: str) -> None:
     st.markdown(content, unsafe_allow_html=True)
     st.markdown(
@@ -121,6 +109,20 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             store=True
         )
 
+        # --- LOG TOKEN USAGE FOR CACHING ---
+        if hasattr(res, "usage"):
+            usage_data = res.usage
+            st.write("🔍 Token usage:", usage_data)
+
+            # Optional: calculate cost for gpt-4.1-mini
+            input_cost = usage_data.prompt_tokens * 0.0000004
+            cached_cost = usage_data.cached_tokens * 0.0000001
+            output_cost = usage_data.completion_tokens * 0.0000016
+            total_cost = input_cost + cached_cost + output_cost
+            st.write(f"💲 Estimated cost this call: ${total_cost:.6f}")
+        else:
+            st.write("No usage data found in response.")
+
         for out in res.output:
             if hasattr(out, "text") and hasattr(out.text, "value"):
                 return out.text.value.strip()
@@ -135,7 +137,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
 
-# --- GENERAL Q&A WITH TRACING ENABLED ---
+# --- GENERAL Q&A ---
 async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
     agent = Agent(name="Rules QA Assistant", instructions="Answer NFHS football rules questions.")
     with trace(workflow_name="NFHS_QA", group_id=group_id or None):
@@ -197,7 +199,7 @@ def render_general_section() -> None:
 # --- MAIN ---
 def main() -> None:
     render_rule_section()
-    # Uncomment below if you want Q&A active
+    # Uncomment to enable Q&A
     # st.markdown("---")
     # render_general_section()
 
