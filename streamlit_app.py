@@ -25,6 +25,10 @@ CONFIG = {
     "CASEBOOK_VECTOR_STORE_ID": "vs_689f72f117c8819195716f04bc2ae546", # case book store
 }
 
+# --- DEBUG MODE CHECK ---
+query_params = st.query_params
+debug_mode = query_params.get("query", "").lower() == "debug"
+
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant – 2025 Edition", layout="wide")
 st.title("🏈 NFHS Football Rules Assistant – 2025 Edition")
@@ -109,15 +113,14 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             store=True
         )
 
-        # --- LOG TOKEN USAGE FOR CACHING ---
-        if hasattr(res, "usage"):
+        # --- LOG TOKEN USAGE ONLY IF DEBUG MODE ---
+        if debug_mode and hasattr(res, "usage"):
             usage_data = res.usage
 
             st.write("🔍 Token usage:")
             st.write(f"Input tokens: {usage_data.input_tokens}")
             st.write(f"Output tokens: {usage_data.output_tokens}")
 
-            # Check nested token details
             if hasattr(usage_data, "input_tokens_details"):
                 details = usage_data.input_tokens_details
                 st.write(f"  Cached input tokens: {getattr(details, 'cached_input_tokens', 0)}")
@@ -125,10 +128,9 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             else:
                 st.write("  No input_tokens_details found.")
 
-            # 💲 Cost calculation for gpt-4.1-mini (adjust if using another model)
+            # Cost calculation for gpt-4.1-mini
             input_tokens = usage_data.input_tokens
             cached_tokens = getattr(usage_data.input_tokens_details, "cached_input_tokens", 0)
-            cache_creation_tokens = getattr(usage_data.input_tokens_details, "cache_creation_input_tokens", 0)
             output_tokens = usage_data.output_tokens
 
             input_cost = (input_tokens - cached_tokens) * 0.0000004
@@ -137,8 +139,6 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             total_cost = input_cost + cached_cost + output_cost
 
             st.write(f"💲 Estimated cost this call: ${total_cost:.6f}")
-        else:
-            st.write("No usage data found in response.")
 
         # --- Extract text output ---
         for out in res.output:
