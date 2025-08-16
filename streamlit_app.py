@@ -159,6 +159,11 @@ def ask_rule_lookup(rule_id: str) -> str | None:
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
+    
+    # --- CACHE WRAPPER ---
+    @st.cache_data(show_spinner=False)
+    def cached_rule_lookup(rule_id: str):
+        return ask_rule_lookup(rule_id)
 
 # --- GENERAL Q&A ---
 async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
@@ -185,7 +190,7 @@ def render_rule_section():
     rule_input = st.text_input("Please your search here", key="rule_input")
     if st.button("Look Up", key="rule_button"):
         if rule_input.strip():
-            result = ask_rule_lookup(rule_input.strip())
+            result = cached_rule_lookup(rule_input.strip())
             st.session_state.rule_result = result
         else:
             st.warning("Please enter a rule ID to look up or enter a question or scenario.")
