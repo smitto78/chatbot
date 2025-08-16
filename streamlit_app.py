@@ -94,7 +94,7 @@ st.markdown(
 def render_output_with_watermark(content: str) -> None:
     st.markdown(content, unsafe_allow_html=True)
     st.markdown(
-        "<div style='margin-top:8px'><sub>© 2025 Tommy Smith — NFHS Football Rules Assistant</sub></div>","<div style='margin-top:8px'><sub>This GPT can make mistakes. Check important info.</sub></div>"
+        "<div style='margin-top:8px'><sub>© 2025 Tommy Smith — NFHS Football Rules Assistant</sub></div>","<div style='margin-top:8px'><sub>This GPT can make mistakes. Check important info.</sub></div>",
         unsafe_allow_html=True
     )
 
