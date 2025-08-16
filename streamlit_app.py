@@ -25,9 +25,11 @@ CONFIG = {
     "CASEBOOK_VECTOR_STORE_ID": "vs_689f72f117c8819195716f04bc2ae546", # case book store
 }
 
-# --- DEBUG MODE CHECK ---
-query_params = st.query_params
-debug_mode = query_params.get("query", "").lower() == "debug"
+# --- DEBUG MODE CHECK (robust to list values in older Streamlit) ---
+_qp_val = st.query_params.get("query", "")
+if isinstance(_qp_val, list):
+    _qp_val = _qp_val[0] if _qp_val else ""
+debug_mode = isinstance(_qp_val, str) and _qp_val.lower() == "debug"
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="🏈 NFHS Football Rules Assistant – 2025 Edition", layout="wide")
@@ -126,18 +128,16 @@ def ask_rule_lookup(rule_id: str) -> str | None:
             st.write(f"Input tokens: {usage_data.input_tokens}")
             st.write(f"Output tokens: {usage_data.output_tokens}")
 
+            cached_tokens = 0
             if hasattr(usage_data, "input_tokens_details"):
                 details = usage_data.input_tokens_details
-                st.write(f"  Cached input tokens: {getattr(details, 'cached_input_tokens', 0)}")
+                cached_tokens = getattr(details, "cached_input_tokens", 0)
+                st.write(f"  Cached input tokens: {cached_tokens}")
                 st.write(f"  Cache creation input tokens: {getattr(details, 'cache_creation_input_tokens', 0)}")
-            else:
-                st.write("  No input_tokens_details found.")
 
             # Cost calculation for gpt-4.1-mini
             input_tokens = usage_data.input_tokens
-            cached_tokens = getattr(usage_data.input_tokens_details, "cached_input_tokens", 0)
             output_tokens = usage_data.output_tokens
-
             input_cost = (input_tokens - cached_tokens) * 0.0000004
             cached_cost = cached_tokens * 0.0000001
             output_cost = output_tokens * 0.0000016
@@ -159,11 +159,11 @@ def ask_rule_lookup(rule_id: str) -> str | None:
     except Exception as e:
         st.error(f"❌ Rule lookup failed: {e}")
         return None
-    
-    # --- CACHE WRAPPER ---
-    @st.cache_data(show_spinner=False)
-    def cached_rule_lookup(rule_id: str):
-        return ask_rule_lookup(rule_id)
+
+# --- CACHE WRAPPER (TOP-LEVEL) ---
+@st.cache_data(show_spinner=False)
+def cached_rule_lookup(rule_id: str):
+    return ask_rule_lookup(rule_id)
 
 # --- GENERAL Q&A ---
 async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
@@ -174,7 +174,7 @@ async def _qa_agent_call(prompt: str, group_id: str | None = None) -> str:
 
 def ask_general(prompt: str) -> str | None:
     try:
-        group_id = st.session_state.qa_thread_id or "default-thread"
+        group_id = st.session_state.get("qa_thread_id") or "default-thread"
         return asyncio.run(_qa_agent_call(prompt, group_id))
     except Exception as e:
         st.error(f"❌ QA lookup failed: {e}")
@@ -187,7 +187,7 @@ def render_rule_section():
             st.session_state[key] = ""
 
     st.markdown("### 🔍 Search by Rule ID (e.g., 8-5-3d) or type a question/scenario")
-    rule_input = st.text_input("Please your search here", key="rule_input")
+    rule_input = st.text_input("Enter your search here", key="rule_input")
     if st.button("Look Up", key="rule_button"):
         if rule_input.strip():
             result = cached_rule_lookup(rule_input.strip())
