@@ -7,6 +7,9 @@ from typing import Optional
 from agents import Agent, Runner, set_default_openai_key
 from agents.tracing import trace
 
+# --- VERSION CONFIG ---
+RULE_VERSION = "65"
+
 # © 2025 Tommy Smith. All Rights Reserved.
 # NFHS Football Rules Assistant – 2025 Edition
 # Unauthorized copying, modification, distribution, or use of this software is prohibited.
@@ -112,7 +115,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         vector_ids = [v for v in vector_ids if v and isinstance(v, str) and v.strip()]
 
         res = client.responses.create(
-            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "64"},
+            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": RULE_VERSION},
             input=[{"role": "user", "content": f"id:{rule_id}"}],
             tools=[{"type": "file_search", "vector_store_ids": vector_ids}],
             text={"format": {"type": "text"}},
@@ -252,7 +255,7 @@ st.markdown(
     }
     </style>
     <div class="footer">
-        NFHS Football Rules Assistant – 2025 Edition v1.064<br>
+        NFHS Football Rules Assistant – 2025 Edition v1.0{RULE_VERSION.zfill(3)}<br>
         © 2025 Tommy Smith. All Rights Reserved.
     </div>
     """,
