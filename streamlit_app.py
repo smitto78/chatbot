@@ -241,7 +241,7 @@ if __name__ == "__main__":
 st.markdown(
     f"""
     <style>
-    .footer {
+    .footer {{
         position: fixed;
         left: 0;
         bottom: 0;
@@ -252,7 +252,7 @@ st.markdown(
         font-size: 12px;
         padding: 5px;
         z-index: 9999;
-    }
+    }}
     </style>
     <div class="footer">
         NFHS Football Rules Assistant – 2025 Edition v1.{RULE_VERSION}<br>
