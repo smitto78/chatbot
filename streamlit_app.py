@@ -112,7 +112,7 @@ def ask_rule_lookup(rule_id: str) -> str | None:
         vector_ids = [v for v in vector_ids if v and isinstance(v, str) and v.strip()]
 
         res = client.responses.create(
-            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "63"},
+            prompt={"id": CONFIG["RULE_PROMPT_ID"], "version": "64"},
             input=[{"role": "user", "content": f"id:{rule_id}"}],
             tools=[{"type": "file_search", "vector_store_ids": vector_ids}],
             text={"format": {"type": "text"}},
@@ -252,7 +252,7 @@ st.markdown(
     }
     </style>
     <div class="footer">
-        NFHS Football Rules Assistant – 2025 Edition v1.063<br>
+        NFHS Football Rules Assistant – 2025 Edition v1.064<br>
         © 2025 Tommy Smith. All Rights Reserved.
     </div>
     """,
