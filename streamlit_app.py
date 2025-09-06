@@ -255,7 +255,7 @@ st.markdown(
     }
     </style>
     <div class="footer">
-        NFHS Football Rules Assistant – 2025 Edition v1.0{RULE_VERSION.zfill(3)}<br>
+        NFHS Football Rules Assistant – 2025 Edition v1.{RULE_VERSION}<br>
         © 2025 Tommy Smith. All Rights Reserved.
     </div>
     """,
