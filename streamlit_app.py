@@ -239,7 +239,7 @@ if __name__ == "__main__":
 
 # --- FOOTER ---
 st.markdown(
-    """
+    f"""
     <style>
     .footer {
         position: fixed;
